@@ -1,0 +1,15 @@
+[workspace]
+members = [
+  "rosac",
+]
+
+resolver = "2"
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+license = "BSD-2-Clause"
+authors = ["Thibault V. (@Larsouille25)"]
+
+# [workspace.dependecies]
+# rosac = { path = "rosac" }

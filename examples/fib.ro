@@ -1,0 +1,20 @@
+
+val std = require "std"
+#         ^ function call without parenthesis
+
+
+fun fib(n: int): int =
+	if n <= 1:
+		ret n
+	else:
+		ret fib(n - 1) + fib(n - 2)
+
+fun foo(in: int, var out: int) =
+	out = 3 * in
+
+val Human = type
+	firstName: String,
+	name: String,
+	age: uint8
+#  ^ a type definition  inspired by Zig's type system.
+
