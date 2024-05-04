@@ -1,6 +1,6 @@
 [workspace]
 members = [
-  "rosac",
+  "compiler/rosac",
 ]
 
 resolver = "2"
