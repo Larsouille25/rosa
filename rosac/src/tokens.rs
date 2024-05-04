@@ -2,12 +2,14 @@
 
 use std::ops::Range;
 
+#[derive(Debug)]
 pub struct Token<'r> {
     pub tt: TokenType,
     pub lexeme: &'r str,
     pub loc: Range<usize>,
 }
 
+#[derive(Debug)]
 pub enum TokenType {
     KW(Keyword),
     Punct(Punctuation),
@@ -18,9 +20,13 @@ pub enum TokenType {
 
     Ident(String),
 
+    Indent,
+    NewLine,
+
     EOF,
 }
 
+#[derive(Debug)]
 pub enum Punctuation {
     // Delimiters:
     RParen,
@@ -57,6 +63,7 @@ pub enum Punctuation {
     Slash,
 }
 
+#[derive(Debug)]
 pub enum Keyword {
     Fun,
     Ret,
