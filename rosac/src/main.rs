@@ -11,5 +11,5 @@ fn main() {
 
     let mut lexer = Lexer::new(&path, &buf);
     let tokens = lexer.lex();
-    dbg!(tokens);
+    let _ = dbg!(tokens);
 }

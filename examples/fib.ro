@@ -1,6 +1,8 @@
-val std = require "std"
-#         ^ function call without parenthesis
+import std/io
+# ^ example of importing `io` from `std`
 
+fun main() =
+	echo "fib(10) = ", fib(10)
 
 fun fib(n: int): int =
 	if n <= 1:
