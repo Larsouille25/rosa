@@ -40,7 +40,7 @@ pub enum Punctuation {
 
     // Punctuation:
     Colon,
-    SemiColon,
+    Semi,
     Comma,
     At,
 

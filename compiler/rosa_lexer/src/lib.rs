@@ -7,6 +7,8 @@ use crate::tokens::{Token, TokenType};
 use crate::tokens::TokenType::*;
 use crate::tokens::{Keyword, Punctuation};
 
+pub mod tokens;
+
 pub struct LexrFile<'r> {
     filepath: &'r Path,
     filetext: &'r str,

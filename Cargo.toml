@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "compiler/rosa_lexer",
   "compiler/rosac",
 ]
 
@@ -11,5 +12,6 @@ edition = "2021"
 license = "BSD-2-Clause"
 authors = ["Thibault V. (@Larsouille25)"]
 
-# [workspace.dependecies]
-# rosac = { path = "rosac" }
+[workspace.dependencies]
+rosac = { path = "compiler/rosac" }
+rosa_lexer = { path = "compiler/rosa_lexer"}

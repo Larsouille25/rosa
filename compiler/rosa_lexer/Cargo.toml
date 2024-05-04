@@ -1,10 +1,9 @@
 [package]
-name = "rosac"
-description = "Rosa Compiler utility."
+name = "rosa_lexer"
+description = "Lexing of Rosa source code into Tokens."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
 
 [dependencies]
-rosa_lexer.workspace = true

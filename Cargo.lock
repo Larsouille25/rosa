@@ -3,5 +3,12 @@
 version = 3
 
 [[package]]
+name = "rosa_lexer"
+version = "0.0.0"
+
+[[package]]
 name = "rosac"
 version = "0.0.0"
+dependencies = [
+ "rosa_lexer",
+]
