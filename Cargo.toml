@@ -1,6 +1,6 @@
 [workspace]
 members = [
-  "compiler/rosa_lexer",
+  "compiler/rosac_lexer",
   "compiler/rosac",
 ]
 
@@ -14,4 +14,4 @@ authors = ["Thibault V. (@Larsouille25)"]
 
 [workspace.dependencies]
 rosac = { path = "compiler/rosac" }
-rosa_lexer = { path = "compiler/rosa_lexer"}
+rosac_lexer = { path = "compiler/rosac_lexer"}

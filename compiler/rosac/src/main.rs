@@ -1,6 +1,6 @@
 use std::{fs::read_to_string, path::PathBuf};
 
-use rosa_lexer::Lexer;
+use rosac_lexer::Lexer;
 
 fn main() {
     println!("Hello, Rosa 🌹!\n");

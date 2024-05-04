@@ -1,5 +1,5 @@
 [package]
-name = "rosa_lexer"
+name = "rosac_lexer"
 description = "Lexing of Rosa source code into Tokens."
 version.workspace = true
 edition.workspace = true
