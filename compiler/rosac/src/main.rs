@@ -14,9 +14,9 @@ fn main() {
     let buf = read_to_string(&path).unwrap();
     let mut s = StandardStream::stdout(ColorChoice::Auto);
 
-    let mut dcx = DiagCtxt::new(&buf, &path, &mut s);
+    let dcx = DiagCtxt::new(&buf, &path);
     let err = dcx.diag_err("test", Span { lo: 1, hi: 2 });
-    // dcx.render_diag(&err); // <-- ERROR, can't borrow twice dcx as mutable.
+    err.format(&mut s).unwrap();
 
     let mut lexer = Lexer::new(&path, &buf);
     let tokens = lexer.lex();

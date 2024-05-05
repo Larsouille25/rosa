@@ -1,12 +1,16 @@
 //! Crate responsible for the error handling in the Rosa compiler.
 
+use std::borrow::Cow;
 use std::io::{self, Write};
 use std::path::Path;
-use std::{borrow::Cow, fmt};
 
 use rosa_comm::{MultiSpan, Span};
 
+use style::SetStyle;
 use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
+
+use crate::style::Style;
+pub mod style;
 
 #[derive(Clone)]
 pub enum Level {
@@ -22,9 +26,11 @@ impl Level {
         match self {
             Level::Error => {
                 spec.set_fg(Some(Color::Red)).set_intense(true);
+                spec.set_bold(true);
             }
             Level::Warning => {
                 spec.set_fg(Some(Color::Yellow)).set_intense(true);
+                spec.set_bold(true);
             }
             Level::Note => {
                 spec.set_fg(Some(Color::Green)).set_intense(true);
@@ -36,55 +42,16 @@ impl Level {
         spec
     }
 
-    fn format(&self, s: &mut StandardStream) -> Result<(), io::Error> {
-        s.set_color(&self.color());
+    pub fn format(&self, s: &mut StandardStream) -> io::Result<()> {
+        s.set_color(&self.color())?;
         match self {
             Level::Error => write!(s, "error"),
             Level::Warning => write!(s, "warning"),
             Level::Note => write!(s, "note"),
             Level::Help => write!(s, "help"),
         }?;
-        s.set_color(&Style::NoStyle.color_spec(self.clone()));
+        s.set_no_style()?;
         Ok(())
-    }
-}
-
-pub enum Style {
-    HeaderMsg,
-    Level(Level),
-    PathLineCol,
-    UnderlinePrimary,
-    UnderlineSecondary,
-    LabelPrimary,
-    LabelSecondary,
-    NoStyle,
-}
-
-impl Style {
-    pub fn color_spec(&self, level: Level) -> ColorSpec {
-        let mut spec = ColorSpec::new();
-        match self {
-            Style::HeaderMsg => {
-                spec.set_bold(true);
-            }
-            Style::Level(lvl) => {
-                spec = lvl.color();
-                spec.set_bold(true);
-            }
-            Style::PathLineCol => {
-                spec.set_bold(true);
-            }
-            Style::UnderlinePrimary | Style::LabelPrimary => {
-                spec = level.color();
-                spec.set_bold(true);
-            }
-            Style::UnderlineSecondary | Style::LabelSecondary => {
-                spec.set_bold(true).set_intense(true);
-                spec.set_fg(Some(Color::Blue));
-            }
-            Style::NoStyle => {}
-        }
-        spec
     }
 }
 
@@ -99,11 +66,21 @@ pub struct Diag<'r> {
 }
 
 impl<'r> Diag<'r> {
-    pub fn format(&self, s: &mut StandardStream) -> Result<(), io::Error> {
+    pub fn format(&self, s: &mut StandardStream) -> io::Result<()> {
         let (line, col) = self.dcx.line_col(self.span.primary().lo);
+
+        s.set_style(Style::PathLineCol, self.level.clone())?;
         write!(s, "{}:{}:{}: ", self.dcx.filepath.display(), line, col,)?;
+        s.set_no_style()?;
+
         self.level.format(s)?;
-        write!(s, ": {}", self.msg)?;
+        write!(s, ": ")?;
+        s.set_style(Style::HeaderMsg, self.level.clone())?;
+        write!(s, "{}", self.msg)?;
+        s.set_no_style()?;
+
+        // TODO: Implement the rendering of the code pointed by the spans.
+        write!(s, "\n")?;
         Ok(())
     }
 }
@@ -113,17 +90,15 @@ pub type DiagMessage = Cow<'static, str>;
 pub struct DiagCtxt<'r> {
     filetext: &'r str,
     filepath: &'r Path,
-    stream: &'r mut StandardStream,
 
     diags: Vec<Diag<'r>>,
 }
 
 impl<'r> DiagCtxt<'r> {
-    pub fn new(filetext: &'r str, filepath: &'r Path, stream: &'r mut StandardStream) -> Self {
+    pub fn new(filetext: &'r str, filepath: &'r Path) -> Self {
         DiagCtxt {
             filetext,
             filepath,
-            stream,
             diags: vec![],
         }
     }
@@ -165,11 +140,7 @@ impl<'r> DiagCtxt<'r> {
         (line, col)
     }
 
-    fn set_style(&mut self, style: Style, level: Level) -> Result<(), io::Error> {
-        self.stream.set_color(&style.color_spec(level))
-    }
-
-    pub fn render_diag(&mut self, diag: &Diag) -> Result<(), io::Error> {
-        diag.format(self.stream)
+    pub fn push_diag(&mut self, diag: Diag<'r>) {
+        self.diags.push(diag);
     }
 }
