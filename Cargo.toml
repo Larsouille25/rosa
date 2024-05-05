@@ -1,7 +1,9 @@
 [workspace]
 members = [
+  "compiler/rosa_errors",
   "compiler/rosac_lexer",
   "compiler/rosac",
+  "compiler/rosa_comm",
 ]
 
 resolver = "2"
@@ -15,3 +17,7 @@ authors = ["Thibault V. (@Larsouille25)"]
 [workspace.dependencies]
 rosac = { path = "compiler/rosac" }
 rosac_lexer = { path = "compiler/rosac_lexer"}
+rosa_errors = { path = "compiler/rosa_errors"}
+rosa_comm = { path = "compiler/rosa_comm"}
+
+termcolor = "1.4.1"
