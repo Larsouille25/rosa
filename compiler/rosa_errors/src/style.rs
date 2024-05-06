@@ -7,6 +7,7 @@ pub enum Style {
     HeaderMsg,
     Level(Level),
     PathLineCol,
+    LineNumber,
     UnderlinePrimary,
     UnderlineSecondary,
     LabelPrimary,
@@ -33,6 +34,10 @@ impl Style {
                 spec.set_bold(true);
             }
             Style::UnderlineSecondary | Style::LabelSecondary => {
+                spec.set_bold(true).set_intense(true);
+                spec.set_fg(Some(Color::Blue));
+            }
+            Style::LineNumber => {
                 spec.set_bold(true).set_intense(true);
                 spec.set_fg(Some(Color::Blue));
             }
