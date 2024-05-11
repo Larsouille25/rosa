@@ -7,7 +7,7 @@ use std::{
 
 /// A type used to store the offset in byte. It's an alias of u32 because,
 /// there is a lot of them in the AST.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct BytePos(pub u32);
 
 impl Add for BytePos {
@@ -34,7 +34,7 @@ impl BytePos {
     pub const ZERO: BytePos = BytePos(0);
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Span {
     /// start index of the span, starting from zero.
     pub lo: BytePos,

@@ -269,6 +269,12 @@ impl<'r> DiagCtxt<'r> {
         LineCol { line, col }
     }
 
+    pub fn emit_all(&self, s: &mut StandardStream) {
+        for d in &self.diags {
+            d.format(s).unwrap();
+        }
+    }
+
     pub fn push_diag(&mut self, diag: Diag<'r>) {
         self.diags.push(diag);
     }

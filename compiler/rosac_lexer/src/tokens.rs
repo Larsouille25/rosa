@@ -2,11 +2,13 @@
 
 use std::ops::Range;
 
+use rosa_comm::Span;
+
 #[derive(Debug)]
 pub struct Token<'r> {
     pub tt: TokenType,
     pub lexeme: &'r str,
-    pub loc: Range<usize>,
+    pub loc: Span,
 }
 
 #[derive(Debug)]

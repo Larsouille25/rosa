@@ -25,7 +25,6 @@ impl<'r> LexrFile<'r> {
         let (i, ch) = self.iter.next()?;
         self.idx = i.into();
         Some(ch)
-        // if let Some((ch, i)) = self.iter.next() {}
     }
 
     pub fn peek(&mut self) -> Option<char> {
