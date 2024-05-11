@@ -1,7 +1,6 @@
 //! Common utilities and data structures used in the compiler.
 
 use std::{
-    cmp::Ordering,
     collections::HashMap,
     ops::{Add, Range},
 };
@@ -77,7 +76,7 @@ pub struct LineCol {
 
 pub type FullLinePos = Range<LineCol>;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct LinesData {
     /// key = line number
     /// value = a list of spans inside that line.
@@ -102,7 +101,7 @@ impl LinesData {
     }
 
     pub fn lines(&self) -> Vec<u32> {
-        let mut v: Vec<u32> = self.p.keys().map(|l| l.clone()).collect();
+        let mut v: Vec<u32> = self.p.keys().copied().collect();
         v.sort();
         v
     }
