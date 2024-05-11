@@ -118,12 +118,12 @@ impl<'r> Diag<'r> {
 
         let mut previous_line_no = lines[0];
         for &line in &lines {
-            self.print_line(s, line, line_no_width, lines_data.get(line))?;
-            if previous_line_no + 2 >= line {
+            if previous_line_no + 3 <= line {
                 s.set_style(Style::LineNumber, &self.level)?;
                 writeln!(s, "...")?;
                 s.set_no_style()?;
             }
+            self.print_line(s, line, line_no_width, lines_data.get(line))?;
             previous_line_no = line;
         }
 
