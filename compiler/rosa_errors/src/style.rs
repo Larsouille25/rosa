@@ -47,19 +47,19 @@ impl Style {
     }
 }
 
-pub trait SetStyle {
-    fn set_style(&mut self, style: Style, lvl: Level) -> io::Result<()>;
+pub(crate) trait SetStyle {
+    fn set_style(&mut self, style: Style, lvl: &Level) -> io::Result<()>;
 
     fn set_no_style(&mut self) -> io::Result<()>;
 }
 
 impl SetStyle for StandardStream {
-    fn set_style(&mut self, style: Style, lvl: Level) -> io::Result<()> {
-        self.set_color(&style.color_spec(lvl))
+    fn set_style(&mut self, style: Style, lvl: &Level) -> io::Result<()> {
+        self.set_color(&style.color_spec(lvl.clone()))
     }
 
     fn set_no_style(&mut self) -> io::Result<()> {
-        self.set_style(Style::NoStyle, Level::Note)
+        self.set_style(Style::NoStyle, &Level::Note)
         // here the level doesn't matter we can put anything because the
         // `NoStyle` depends on nothing.
     }

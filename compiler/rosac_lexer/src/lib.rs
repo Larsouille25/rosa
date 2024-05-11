@@ -1,11 +1,13 @@
 //! Lexing of Rosa source code into Tokens.
 
-use std::{iter::Peekable, ops::Range, path::Path, str::Chars};
+use std::str::CharIndices;
+use std::{iter::Peekable, path::Path};
 
 use crate::tokens::{Token, TokenType};
 
 use crate::tokens::TokenType::*;
-use crate::tokens::{Keyword, Punctuation};
+// use crate::tokens::{Keyword, Punctuation};
+use rosa_comm::BytePos;
 
 pub mod tokens;
 
@@ -13,19 +15,21 @@ pub struct LexrFile<'r> {
     filepath: &'r Path,
     filetext: &'r str,
     /// Index of the last `pop`ed char, starting from 1.
-    idx: usize,
+    idx: BytePos,
 
-    iter: Peekable<Chars<'r>>,
+    iter: Peekable<CharIndices<'r>>,
 }
 
 impl<'r> LexrFile<'r> {
     pub fn pop(&mut self) -> Option<char> {
-        self.idx += 1;
-        self.iter.next()
+        let (i, ch) = self.iter.next()?;
+        self.idx = i.into();
+        Some(ch)
+        // if let Some((ch, i)) = self.iter.next() {}
     }
 
-    pub fn peek(&mut self) -> Option<&char> {
-        self.iter.peek()
+    pub fn peek(&mut self) -> Option<char> {
+        Some(self.iter.peek()?.1)
     }
 
     pub fn filepath(&self) -> &'r Path {
@@ -39,8 +43,8 @@ impl<'r> LexrFile<'r> {
     /// NOTE: This function can slow the lexing, it shouldn't be called too
     /// often.
     pub fn reset(&mut self) {
-        self.iter = self.filetext.chars().peekable();
-        self.idx = 0;
+        self.iter = self.filetext.char_indices().peekable();
+        self.idx = BytePos::ZERO;
     }
 
     /// Returns the true length, the count of how many Unicode characters there is
@@ -65,17 +69,20 @@ impl<'r> LexrFile<'r> {
         // TODO: use `advance_by` method on the iterator when it will be
         // stabilized
         for _ in 0..new_idx {
-            if self.iter.next().is_none() {
+            if let Some((i, _)) = self.iter.next() {
+                self.idx = i.into();
+            } else {
                 unreachable!("Should've been caught before.")
             }
         }
-        self.idx = new_idx;
 
         Some(())
     }
 
     pub fn relative_reset(&mut self, offset: isize) -> Option<()> {
-        let new_idx = ((self.idx as isize + offset).try_into() as Result<usize, _>).ok()?;
+        let new_idx = ((<BytePos as Into<usize>>::into(self.idx) as isize + offset).try_into()
+            as Result<usize, _>)
+            .ok()?;
         self.reset_to(new_idx)
     }
 }
@@ -102,8 +109,8 @@ impl<'r> Lexer<'r> {
             file: LexrFile {
                 filepath,
                 filetext,
-                idx: 0,
-                iter: filetext.chars().peekable(),
+                idx: 0.into(),
+                iter: filetext.char_indices().peekable(),
             },
             prev_idx: 0,
             idx: 0,
@@ -115,7 +122,7 @@ impl<'r> Lexer<'r> {
         self.file.pop()
     }
 
-    pub fn peek(&mut self) -> Option<&char> {
+    pub fn peek(&mut self) -> Option<char> {
         self.file.peek()
     }
 

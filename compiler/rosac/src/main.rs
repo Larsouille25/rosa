@@ -15,7 +15,13 @@ fn main() {
     let mut s = StandardStream::stdout(ColorChoice::Auto);
 
     let dcx = DiagCtxt::new(&buf, &path);
-    let err = dcx.diag_err("test", Span { lo: 1, hi: 2 });
+    let err = dcx.struct_spans_err(
+        "test",
+        vec![Span {
+            lo: 0.into(),
+            hi: 12.into(),
+        }],
+    );
     err.format(&mut s).unwrap();
 
     let mut lexer = Lexer::new(&path, &buf);
