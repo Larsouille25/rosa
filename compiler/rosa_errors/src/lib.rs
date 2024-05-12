@@ -1,6 +1,7 @@
 //! Crate responsible for the error handling in the Rosa compiler.
 
 use std::borrow::Cow;
+use std::cell::RefCell;
 use std::cmp::max;
 use std::io::{self, Write};
 use std::ops::Range;
@@ -207,7 +208,7 @@ pub struct DiagCtxt<'r> {
     filetext: &'r str,
     filepath: &'r Path,
 
-    diags: Vec<Diag<'r>>,
+    diags: RefCell<Vec<Diag<'r>>>,
 }
 
 impl<'r> DiagCtxt<'r> {
@@ -215,16 +216,16 @@ impl<'r> DiagCtxt<'r> {
         DiagCtxt {
             filetext,
             filepath,
-            diags: vec![],
+            diags: RefCell::new(Vec::new()),
         }
     }
 
     pub fn diag(
-        &self,
+        &'r self,
         level: Level,
         msg: impl Into<DiagMessage>,
         primary_spans: Vec<Span>,
-    ) -> Diag {
+    ) -> Diag<'r> {
         Diag {
             dcx: self,
             level,
@@ -233,19 +234,27 @@ impl<'r> DiagCtxt<'r> {
         }
     }
 
-    pub fn struct_err(&self, msg: impl Into<DiagMessage>, primary_span: Span) -> Diag {
+    pub fn struct_err(&'r self, msg: impl Into<DiagMessage>, primary_span: Span) -> Diag<'r> {
         self.struct_spans_err(msg, vec![primary_span])
     }
 
-    pub fn struct_warn(&self, msg: impl Into<DiagMessage>, primary_span: Span) -> Diag {
+    pub fn struct_warn(&'r self, msg: impl Into<DiagMessage>, primary_span: Span) -> Diag<'r> {
         self.struct_spans_warn(msg, vec![primary_span])
     }
 
-    pub fn struct_spans_err(&self, msg: impl Into<DiagMessage>, primary_spans: Vec<Span>) -> Diag {
+    pub fn struct_spans_err(
+        &'r self,
+        msg: impl Into<DiagMessage>,
+        primary_spans: Vec<Span>,
+    ) -> Diag<'r> {
         self.diag(Level::Error, msg, primary_spans)
     }
 
-    pub fn struct_spans_warn(&self, msg: impl Into<DiagMessage>, primary_spans: Vec<Span>) -> Diag {
+    pub fn struct_spans_warn(
+        &'r self,
+        msg: impl Into<DiagMessage>,
+        primary_spans: Vec<Span>,
+    ) -> Diag<'r> {
         self.diag(Level::Warning, msg, primary_spans)
     }
 
@@ -270,17 +279,17 @@ impl<'r> DiagCtxt<'r> {
     }
 
     pub fn emit_all(&self, s: &mut StandardStream) {
-        for d in &self.diags {
+        for d in self.diags.borrow().iter() {
             d.format(s).unwrap();
         }
     }
 
-    pub fn push_diag(&mut self, diag: Diag<'r>) {
-        self.diags.push(diag);
+    pub fn push_diag(&self, diag: Diag<'r>) {
+        self.diags.borrow_mut().push(diag);
     }
 
     pub fn failed(&self) -> bool {
-        for diag in &self.diags {
+        for diag in self.diags.borrow().iter() {
             if diag.is_error() {
                 return true;
             }
