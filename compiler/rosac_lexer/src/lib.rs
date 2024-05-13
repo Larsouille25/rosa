@@ -113,9 +113,15 @@ impl<'r> Lexer<'r> {
         }
     }
 
+    /// Advance the iterator and the index (self.idx)
     pub fn pop(&mut self) -> Option<char> {
         self.idx += 1;
         self.file.pop()
+    }
+
+    /// Advance the underlying iterator without returning the result.
+    pub fn advance(&mut self) {
+        self.file.pop();
     }
 
     pub fn peek(&mut self) -> Option<char> {
@@ -132,8 +138,7 @@ impl<'r> Lexer<'r> {
     pub fn lex(&mut self) -> RecoverableRes<Token, Diag<'_>> {
         self.prev_idx = self.idx;
 
-        self.pop();
-        let tt = match self.peek() {
+        let tt = match self.pop() {
             Some('A'..='Z' | 'a'..='z' | '_' | '0'..='9') => {
                 todo!("We've got an indentifier, keyword or integer literal!")
             }

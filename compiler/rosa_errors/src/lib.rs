@@ -335,6 +335,14 @@ impl<'r> DiagCtxt<'r> {
         let width = self.get_line(line).map(|s| s.len());
         width
     }
+
+    pub fn filetext(&self) -> &str {
+        self.filetext
+    }
+
+    pub fn filepath(&self) -> &Path {
+        self.filepath
+    }
 }
 
 /// Like Result in the standard library, but here their is a case where we can
