@@ -3,11 +3,16 @@
 use std::str::CharIndices;
 use std::{iter::Peekable, path::Path};
 
-use crate::tokens::{Token, TokenType};
+use crate::tokens::Token;
 
 use crate::tokens::TokenType::*;
 // use crate::tokens::{Keyword, Punctuation};
-use rosa_comm::BytePos;
+use rosa_comm::{BytePos, Span};
+use rosa_errors::DiagCtxt;
+use rosa_errors::{
+    Diag,
+    RecoverableRes::{self, *},
+};
 
 pub mod tokens;
 
@@ -86,24 +91,15 @@ impl<'r> LexrFile<'r> {
     }
 }
 
-pub enum PartTokenResult {
-    Tok(TokenType),
-    Error(String),
-    PartOk(TokenType, Vec<String>),
-    Comment,
-    OtherWS,
-}
-
-use PartTokenResult::*;
-
 pub struct Lexer<'r> {
     file: LexrFile<'r>,
-    prev_idx: usize,
-    idx: usize,
+    prev_idx: BytePos,
+    idx: BytePos,
+    dcx: &'r DiagCtxt<'r>,
 }
 
 impl<'r> Lexer<'r> {
-    pub fn new(filepath: &'r Path, filetext: &'r str) -> Lexer<'r> {
+    pub fn new(filepath: &'r Path, filetext: &'r str, dcx: &'r DiagCtxt<'r>) -> Lexer<'r> {
         Lexer {
             file: LexrFile {
                 filepath,
@@ -111,8 +107,9 @@ impl<'r> Lexer<'r> {
                 idx: 0.into(),
                 iter: filetext.char_indices().peekable(),
             },
-            prev_idx: 0,
-            idx: 0,
+            prev_idx: 0.into(),
+            idx: 0.into(),
+            dcx,
         }
     }
 
@@ -125,34 +122,33 @@ impl<'r> Lexer<'r> {
         self.file.peek()
     }
 
-    pub fn lex(&mut self) -> Result<Vec<Token>, ()> {
-        let mut tokens = Vec::new();
-
-        loop {
-            self.prev_idx = self.idx;
-            match self.make_token() {
-                Tok(tt) => {}
-                Error(err) => {
-                    println!("{}", err);
-                    return Err(());
-                }
-                PartOk(tt, errs) => {}
-                Comment | OtherWS => {}
-            }
+    pub fn current_span(&self) -> Span {
+        Span {
+            lo: self.prev_idx,
+            hi: self.idx,
         }
-
-        Ok(tokens)
     }
 
-    pub fn make_token(&mut self) -> PartTokenResult {
-        let t = match self.peek() {
+    pub fn lex(&mut self) -> RecoverableRes<Token, Diag<'_>> {
+        self.prev_idx = self.idx;
+
+        self.pop();
+        let tt = match self.peek() {
             Some('A'..='Z' | 'a'..='z' | '_' | '0'..='9') => {
                 todo!("We've got an indentifier, keyword or integer literal!")
             }
-            Some(c) => return Error(format!("unknown start of token {:?}", c)),
+            Some(c) => {
+                let err = self
+                    .dcx
+                    .struct_err(format!("unknown start of token {c:?}"), self.current_span());
+                return Unrecovered(err);
+            }
             None => EOF,
         };
-        self.idx += 1;
-        Tok(t)
+
+        Good(Token {
+            tt,
+            loc: self.current_span(),
+        })
     }
 }

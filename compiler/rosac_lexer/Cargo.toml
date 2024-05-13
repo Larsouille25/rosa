@@ -8,3 +8,4 @@ authors.workspace = true
 
 [dependencies]
 rosa_comm.workspace = true
+rosa_errors.workspace = true

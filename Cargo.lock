@@ -29,6 +29,7 @@ name = "rosac_lexer"
 version = "0.0.0"
 dependencies = [
  "rosa_comm",
+ "rosa_errors",
 ]
 
 [[package]]

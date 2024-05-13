@@ -15,7 +15,7 @@ use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
 use crate::style::Style;
 pub mod style;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Level {
     Error,
     Warning,
@@ -58,23 +58,36 @@ impl Level {
     }
 }
 
-/// `Diag` for `Diagnostic`
-#[derive(Clone)]
 pub struct Diag<'r> {
-    dcx: &'r DiagCtxt<'r>,
+    pub dcx: &'r DiagCtxt<'r>,
+    pub diag: DiagInner,
+}
 
+impl<'r> Diag<'r> {
+    pub fn emit(self) {
+        self.dcx.emit_diag(self)
+    }
+
+    pub fn format(&self, s: &mut StandardStream) -> io::Result<()> {
+        self.diag.format(self.dcx, s)
+    }
+}
+
+/// `Diag` for `Diagnostic`
+#[derive(Clone, Debug)]
+pub struct DiagInner {
     level: Level,
     msg: DiagMessage,
     span: MultiSpan,
 }
 
-impl<'r> Diag<'r> {
-    pub fn format(&self, s: &mut StandardStream) -> io::Result<()> {
-        let prim_pos = self.primary_line_pos();
+impl DiagInner {
+    pub fn format(&self, dcx: &DiagCtxt, s: &mut StandardStream) -> io::Result<()> {
+        let prim_pos = self.primary_line_pos(dcx);
         let LineCol { line, col } = prim_pos[0].start;
 
         s.set_style(Style::PathLineCol, &self.level)?;
-        write!(s, "{}:{}:{}: ", self.dcx.filepath.display(), line, col)?;
+        write!(s, "{}:{}:{}: ", dcx.filepath.display(), line, col)?;
         s.set_no_style()?;
 
         self.level.format(s)?;
@@ -83,17 +96,17 @@ impl<'r> Diag<'r> {
         write!(s, "{}", self.msg)?;
         s.set_no_style()?;
 
-        s.flush()?;
-        self.render_snippet(s, prim_pos)?;
+        self.render_snippet(dcx, s, prim_pos)?;
         writeln!(s)?;
+        s.flush()?;
         Ok(())
     }
 
-    pub fn primary_line_pos(&self) -> Vec<FullLinePos> {
+    pub fn primary_line_pos(&self, dcx: &DiagCtxt) -> Vec<FullLinePos> {
         let mut lines = Vec::new();
 
         for span in self.span.primaries() {
-            lines.push(self.dcx.line_col(span.lo)..self.dcx.line_col(span.hi));
+            lines.push(dcx.line_col(span.lo)..dcx.line_col(span.hi));
         }
 
         lines
@@ -101,12 +114,17 @@ impl<'r> Diag<'r> {
 
     /// Returns true if the diagnostic is an error.
     pub fn is_error(&self) -> bool {
-        matches!(self.level, Level::Error)
+        matches!(&self.level, Level::Error)
     }
 
-    fn render_snippet(&self, s: &mut StandardStream, prim_pos: Vec<FullLinePos>) -> io::Result<()> {
+    fn render_snippet(
+        &self,
+        dcx: &DiagCtxt,
+        s: &mut StandardStream,
+        prim_pos: Vec<FullLinePos>,
+    ) -> io::Result<()> {
         // TODO: remove this unwrap and put something else.
-        let lines_data = self.build_lines_data(prim_pos).unwrap();
+        let lines_data = self.build_lines_data(dcx, prim_pos).unwrap();
         writeln!(s)?;
 
         let lines = lines_data.lines();
@@ -124,14 +142,14 @@ impl<'r> Diag<'r> {
                 writeln!(s, "...")?;
                 s.set_no_style()?;
             }
-            self.print_line(s, line, line_no_width, lines_data.get(line))?;
+            self.print_line(dcx, s, line, line_no_width, lines_data.get(line))?;
             previous_line_no = line;
         }
 
         Ok(())
     }
 
-    fn build_lines_data(&self, prim_pos: Vec<FullLinePos>) -> Option<LinesData> {
+    fn build_lines_data(&self, dcx: &DiagCtxt, prim_pos: Vec<FullLinePos>) -> Option<LinesData> {
         let mut data = LinesData::new();
 
         for prim in prim_pos {
@@ -140,7 +158,7 @@ impl<'r> Diag<'r> {
                 data.push_or_append(
                     prim.start.line,
                     // plus one at the end because starts from one.
-                    prim.start.col..self.dcx.get_line_width(prim.start.line).unwrap() as u32 + 1,
+                    prim.start.col..dcx.get_line_width(prim.start.line).unwrap() as u32 + 1,
                 );
 
                 // Mark the lines in between the start and the end
@@ -148,7 +166,7 @@ impl<'r> Diag<'r> {
                 if diff == 2 {
                     let l = prim.start.line + 1;
                     // plus one at the end of the range because the range is offseted by one.
-                    data.push_or_append(l, 1..self.dcx.get_line_width(l)? as u32 + 1)?;
+                    data.push_or_append(l, 1..dcx.get_line_width(l)? as u32 + 1)?;
                 }
 
                 // Mark the end of the span
@@ -164,6 +182,7 @@ impl<'r> Diag<'r> {
     /// When calling this function, curs is assumed to be sorted
     fn print_line(
         &self,
+        dcx: &DiagCtxt,
         s: &mut StandardStream,
         line: u32,
         width: usize,
@@ -172,7 +191,7 @@ impl<'r> Diag<'r> {
         s.set_style(Style::LineNumber, &self.level)?;
         write!(s, "{:^width$}| ", line)?;
         s.set_no_style()?;
-        writeln!(s, "{}", self.dcx.get_line(line).unwrap())?;
+        writeln!(s, "{}", dcx.get_line(line).unwrap())?;
 
         s.set_style(Style::LineNumber, &self.level)?;
         write!(s, "{:width$}| ", "")?;
@@ -204,11 +223,12 @@ impl<'r> Diag<'r> {
 
 pub type DiagMessage = Cow<'static, str>;
 
+#[derive(Debug)]
 pub struct DiagCtxt<'r> {
     filetext: &'r str,
     filepath: &'r Path,
 
-    diags: RefCell<Vec<Diag<'r>>>,
+    diags: RefCell<Vec<DiagInner>>,
 }
 
 impl<'r> DiagCtxt<'r> {
@@ -228,9 +248,11 @@ impl<'r> DiagCtxt<'r> {
     ) -> Diag<'r> {
         Diag {
             dcx: self,
-            level,
-            msg: msg.into(),
-            span: MultiSpan::from_spans(primary_spans),
+            diag: DiagInner {
+                level,
+                msg: msg.into(),
+                span: MultiSpan::from_spans(primary_spans),
+            },
         }
     }
 
@@ -278,14 +300,14 @@ impl<'r> DiagCtxt<'r> {
         LineCol { line, col }
     }
 
-    pub fn emit_all(&self, s: &mut StandardStream) {
+    pub fn render_all(&self, s: &mut StandardStream) {
         for d in self.diags.borrow().iter() {
-            d.format(s).unwrap();
+            d.format(self, s).unwrap();
         }
     }
 
-    pub fn push_diag(&self, diag: Diag<'r>) {
-        self.diags.borrow_mut().push(diag);
+    pub fn emit_diag(&self, diag: Diag<'r>) {
+        self.diags.borrow_mut().push(diag.diag);
     }
 
     pub fn failed(&self) -> bool {
@@ -313,4 +335,13 @@ impl<'r> DiagCtxt<'r> {
         let width = self.get_line(line).map(|s| s.len());
         width
     }
+}
+
+/// Like Result in the standard library, but here their is a case where we can
+/// still compute the result even if at some point it failed.
+#[derive(Clone, Debug)]
+pub enum RecoverableRes<T, E> {
+    Good(T),
+    Recovered(T, E),
+    Unrecovered(E),
 }

@@ -2,7 +2,7 @@
 
 use std::{
     collections::HashMap,
-    ops::{Add, Range},
+    ops::{Add, AddAssign, Range},
 };
 
 /// A type used to store the offset in byte. It's an alias of u32 because,
@@ -15,6 +15,18 @@ impl Add for BytePos {
 
     fn add(self, rhs: Self) -> Self::Output {
         BytePos(self.0 + rhs.0)
+    }
+}
+
+impl AddAssign<Self> for BytePos {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0
+    }
+}
+
+impl AddAssign<u32> for BytePos {
+    fn add_assign(&mut self, rhs: u32) {
+        self.0 += rhs
     }
 }
 
@@ -42,7 +54,7 @@ pub struct Span {
     pub hi: BytePos,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MultiSpan {
     pub(crate) primary_spans: Vec<Span>,
     // TODO: Implement this part of the MultiSpan type, for it's not one of the

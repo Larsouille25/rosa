@@ -1,34 +1,37 @@
 //! Rosa's tokens.
 
-use std::ops::Range;
-
 use rosa_comm::Span;
 
 #[derive(Debug)]
-pub struct Token<'r> {
+pub struct Token {
     pub tt: TokenType,
-    pub lexeme: &'r str,
     pub loc: Span,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenType {
+    // Keywords
     KW(Keyword),
+
+    // Operators and Punctuation
     Punct(Punctuation),
 
+    // Literals
     Int(u64),
     Str(String),
     Char(char),
 
     Ident(String),
 
+    // Special White Space
     Indent,
     NewLine,
 
+    // End of file
     EOF,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Punctuation {
     // Delimiters:
     RParen,
@@ -65,7 +68,7 @@ pub enum Punctuation {
     Slash,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Keyword {
     Fun,
     Ret,

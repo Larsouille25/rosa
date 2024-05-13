@@ -2,9 +2,8 @@ use std::{env, fs::read_to_string, path::PathBuf};
 
 use termcolor::{ColorChoice, StandardStream};
 
-use rosa_comm::Span;
-use rosa_errors::DiagCtxt;
-use rosac_lexer::Lexer;
+use rosa_errors::{DiagCtxt, RecoverableRes::*};
+use rosac_lexer::{tokens::TokenType, Lexer};
 
 fn main() {
     println!("Hello, Rosa 🌹!\n");
@@ -16,17 +15,30 @@ fn main() {
     let mut s = StandardStream::stdout(ColorChoice::Auto);
 
     let dcx = DiagCtxt::new(&buf, &path);
-    let err = dcx.struct_spans_err(
-        "test",
-        vec![Span {
-            lo: 0.into(),
-            hi: 12.into(),
-        }],
-    );
-    dcx.push_diag(err);
-    dcx.emit_all(&mut s);
 
-    let mut lexer = Lexer::new(&path, &buf);
-    let tokens = lexer.lex();
-    let _ = dbg!(tokens);
+    let mut lexer = Lexer::new(&path, &buf, &dcx);
+
+    loop {
+        let res = lexer.lex();
+
+        match res {
+            Good(tok) => {
+                dbg!(&tok);
+                if tok.tt == TokenType::EOF {
+                    break;
+                }
+            }
+            Recovered(tok, err) => {
+                dbg!(&tok);
+                if tok.tt == TokenType::EOF {
+                    break;
+                }
+                err.emit();
+            }
+            Unrecovered(err) => {
+                err.emit();
+            }
+        }
+    }
+    dcx.render_all(&mut s);
 }
