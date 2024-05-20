@@ -360,8 +360,8 @@ impl<'r> DiagCtxt<'r> {
 /// Like Result in the standard library, but here their is a case where we can
 /// still compute the result even if at some point it failed.
 #[derive(Clone, Debug)]
-pub enum RecoverableRes<T, E> {
+pub enum RosaRes<T, E, Es = Vec<E>> {
     Good(T),
-    Recovered(T, E),
+    Recovered(T, Es),
     Unrecovered(E),
 }

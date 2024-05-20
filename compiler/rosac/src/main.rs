@@ -2,7 +2,7 @@ use std::{env, fs::read_to_string, path::PathBuf};
 
 use termcolor::{ColorChoice, StandardStream};
 
-use rosa_errors::{DiagCtxt, RecoverableRes::*};
+use rosa_errors::{DiagCtxt, RosaRes::*};
 use rosac_lexer::{tokens::TokenType, Lexer};
 
 fn main() {
@@ -28,12 +28,16 @@ fn main() {
                     break;
                 }
             }
-            Recovered(tok, err) => {
+            Recovered(tok, errs) => {
                 dbg!(&tok);
+
+                for err in errs {
+                    err.emit();
+                }
+
                 if tok.tt == TokenType::EOF {
                     break;
                 }
-                err.emit();
             }
             Unrecovered(err) => {
                 err.emit();

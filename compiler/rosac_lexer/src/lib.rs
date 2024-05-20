@@ -11,7 +11,7 @@ use rosa_comm::{BytePos, Span};
 use rosa_errors::DiagCtxt;
 use rosa_errors::{
     Diag,
-    RecoverableRes::{self, *},
+    RosaRes::{self, *},
 };
 
 pub mod tokens;
@@ -135,7 +135,7 @@ impl<'r> Lexer<'r> {
         }
     }
 
-    pub fn lex(&mut self) -> RecoverableRes<Token, Diag<'_>> {
+    pub fn lex(&mut self) -> RosaRes<Token, Diag<'_>> {
         self.prev_idx = self.idx;
 
         let tt = match self.pop() {
