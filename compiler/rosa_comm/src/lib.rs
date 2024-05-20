@@ -9,7 +9,7 @@ type _BytePosInner = u32;
 
 /// A type used to store the offset in byte. It's an alias of u32 because,
 /// there is a lot of them in the AST.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BytePos(pub _BytePosInner);
 
 impl Add for BytePos {
@@ -48,7 +48,7 @@ impl BytePos {
     pub const ZERO: BytePos = BytePos(0);
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Span {
     /// start index of the span, starting from zero.
     pub lo: BytePos,
@@ -57,12 +57,26 @@ pub struct Span {
 }
 
 impl Span {
+    pub fn new<I: Into<BytePos>>(lo: I, hi: I) -> Span {
+        Span {
+            lo: lo.into(),
+            hi: hi.into(),
+        }
+    }
+
     pub fn range(self) -> Range<_BytePosInner> {
         self.lo.0..self.hi.0
     }
 
     pub fn range_usize(self) -> Range<usize> {
         self.lo.0 as usize..self.hi.0 as usize
+    }
+
+    pub fn offset<I: Into<BytePos> + Copy>(self, offset: I) -> Span {
+        Span {
+            lo: self.lo + offset.into(),
+            hi: self.hi + offset.into(),
+        }
     }
 }
 

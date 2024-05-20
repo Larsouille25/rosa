@@ -14,6 +14,7 @@ use rosa_errors::{
     RosaRes::{self, *},
 };
 
+pub mod literals;
 pub mod tokens;
 
 pub struct LexrFile<'r> {
@@ -163,11 +164,11 @@ impl<'r> Lexer<'r> {
 
         while let Some(c) = self.peek() {
             match c {
-                'A'..='Z' | 'a'..='z' | '_' => {
+                'A'..='Z' | 'a'..='z' => {
                     word.push(c);
                     numeric = false;
                 }
-                '0'..='9' => {
+                '0'..='9' | '_' => {
                     word.push(c);
                 }
                 _ => break,
@@ -182,7 +183,7 @@ impl<'r> Lexer<'r> {
         let (word, numeric) = self.make_word(c);
 
         let tt = if numeric {
-            todo!("WE'VE GOT AN INTEGER LITERAL");
+            return self.lex_int(word);
         } else {
             self.lex_keyword(word)
         };
