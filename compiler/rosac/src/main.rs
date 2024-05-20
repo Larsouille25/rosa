@@ -24,6 +24,8 @@ fn main() {
         match res {
             Good(tok) => {
                 dbg!(&tok);
+                dbg!(&buf[tok.loc.range_usize()]);
+                println!();
                 if tok.tt == TokenType::EOF {
                     break;
                 }

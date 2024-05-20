@@ -1,12 +1,12 @@
 //! Lexing of Rosa source code into Tokens.
 
-use std::str::CharIndices;
+use std::str::{CharIndices, FromStr};
 use std::{iter::Peekable, path::Path};
 
-use crate::tokens::Token;
+use crate::tokens::{Token, TokenType};
 
 use crate::tokens::TokenType::*;
-// use crate::tokens::{Keyword, Punctuation};
+use crate::tokens::{Keyword, Punctuation};
 use rosa_comm::{BytePos, Span};
 use rosa_errors::DiagCtxt;
 use rosa_errors::{
@@ -139,8 +139,8 @@ impl<'r> Lexer<'r> {
         self.prev_idx = self.idx;
 
         let tt = match self.pop() {
-            Some('A'..='Z' | 'a'..='z' | '_' | '0'..='9') => {
-                todo!("We've got an indentifier, keyword or integer literal!")
+            Some(c @ ('A'..='Z' | 'a'..='z' | '_' | '0'..='9')) => {
+                return self.lex_word(c);
             }
             Some(c) => {
                 let err = self
@@ -155,5 +155,49 @@ impl<'r> Lexer<'r> {
             tt,
             loc: self.current_span(),
         })
+    }
+
+    pub(crate) fn make_word(&mut self, c: char) -> (String, bool) {
+        let mut word = String::from(c);
+        let mut numeric = true;
+
+        while let Some(c) = self.peek() {
+            match c {
+                'A'..='Z' | 'a'..='z' | '_' => {
+                    word.push(c);
+                    numeric = false;
+                }
+                '0'..='9' => {
+                    word.push(c);
+                }
+                _ => break,
+            }
+            self.pop();
+        }
+
+        (word, numeric)
+    }
+
+    pub(crate) fn lex_word(&mut self, c: char) -> RosaRes<Token, Diag<'_>> {
+        let (word, numeric) = self.make_word(c);
+
+        let tt = if numeric {
+            todo!("WE'VE GOT AN INTEGER LITERAL");
+        } else {
+            self.lex_keyword(word)
+        };
+
+        Good(Token {
+            tt,
+            loc: self.current_span(),
+        })
+    }
+
+    pub(crate) fn lex_keyword(&self, word: String) -> TokenType {
+        if let Ok(kw) = Keyword::from_str(&word) {
+            TokenType::KW(kw)
+        } else {
+            TokenType::Ident(word)
+        }
     }
 }

@@ -1,5 +1,7 @@
 //! Rosa's tokens.
 
+use std::str::FromStr;
+
 use rosa_comm::Span;
 
 #[derive(Debug)]
@@ -77,4 +79,21 @@ pub enum Keyword {
     Type,
     True,
     False,
+}
+
+impl FromStr for Keyword {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "fun" => Keyword::Fun,
+            "ret" => Keyword::Ret,
+            "val" => Keyword::Val,
+            "var" => Keyword::Var,
+            "type" => Keyword::Type,
+            "true" => Keyword::True,
+            "false" => Keyword::False,
+            _ => return Err(()),
+        })
+    }
 }
