@@ -106,7 +106,19 @@ impl DiagInner {
         let mut lines = Vec::new();
 
         for span in self.span.primaries() {
-            lines.push(dcx.line_col(span.lo)..dcx.line_col(span.hi));
+            let lo = dcx.line_col(span.lo);
+            let mut hi = dcx.line_col(span.hi);
+            let c = dcx.filetext.get(span.lo.0 as usize..span.hi.0 as usize);
+
+            // handle the case where the diag wants to point to a new line,
+            // it's kinda a hacky fix but it is what it is..
+            if let Some("\n") = c {
+                hi = LineCol {
+                    line: lo.line,
+                    col: lo.col + 1,
+                };
+            }
+            lines.push(lo..hi);
         }
 
         lines
