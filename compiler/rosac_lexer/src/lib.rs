@@ -136,13 +136,28 @@ impl<'r> Lexer<'r> {
         }
     }
 
+    pub fn window(&self, size: usize) -> &str {
+        &self.file.filetext[self.prev_idx.0 as usize..self.prev_idx.0 as usize + size]
+    }
+
     pub fn lex(&mut self) -> RosaRes<Token, Diag<'_>> {
+        self.skip_useless_whitespace();
+
         self.prev_idx = self.idx;
 
         let tt = match self.pop() {
             Some(c @ ('A'..='Z' | 'a'..='z' | '_' | '0'..='9')) => {
                 return self.lex_word(c);
             }
+            Some('\n') => NewLine,
+            // an indentation is either 4 spaces or a tabulation.
+            Some(' ') if self.window(4) == "    " => {
+                self.pop();
+                self.pop();
+                self.pop();
+                Indent
+            }
+            Some('\t') => Indent,
             Some(c) => {
                 let err = self
                     .dcx
@@ -199,6 +214,30 @@ impl<'r> Lexer<'r> {
             TokenType::KW(kw)
         } else {
             TokenType::Ident(word)
+        }
+    }
+
+    pub(crate) fn skip_useless_whitespace(&mut self) {
+        while let Some(c) = self.peek() {
+            match c {
+                ' ' if self.window(4) != "    " => {
+                    dbg!("POPED A SPACE");
+                    self.pop();
+                }
+                '\u{000B}'..='\u{000D}'
+                | '\u{0085}'
+                | '\u{00A0}'
+                | '\u{1680}'
+                | '\u{2000}'..='\u{200A}'
+                | '\u{2028}'
+                | '\u{2029}'
+                | '\u{202F}'
+                | '\u{205F}'
+                | '\u{3000}' => {
+                    self.pop();
+                }
+                _ => break,
+            }
         }
     }
 }
