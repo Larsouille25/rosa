@@ -136,8 +136,10 @@ impl<'r> Lexer<'r> {
         }
     }
 
-    pub fn window(&self, size: usize) -> &str {
-        &self.file.filetext[self.prev_idx.0 as usize..self.prev_idx.0 as usize + size]
+    pub fn window(&self, size: usize) -> Option<&str> {
+        self.file
+            .filetext
+            .get(self.prev_idx.0 as usize..self.prev_idx.0 as usize + size)
     }
 
     pub fn lex(&mut self) -> RosaRes<Token, Diag<'_>> {
@@ -145,26 +147,35 @@ impl<'r> Lexer<'r> {
 
         self.prev_idx = self.idx;
 
-        let tt = match self.pop() {
-            Some(c @ ('A'..='Z' | 'a'..='z' | '_' | '0'..='9')) => {
-                return self.lex_word(c);
+        let tt = 'm: {
+            match self.pop() {
+                Some(c @ ('A'..='Z' | 'a'..='z' | '_' | '0'..='9')) => {
+                    return self.lex_word(c);
+                }
+                Some('\n') => NewLine,
+                // an indentation is either 4 spaces or a tabulation.
+                Some(' ') if self.window(4) == Some("    ") => {
+                    self.pop();
+                    self.pop();
+                    self.pop();
+                    Indent
+                }
+                Some('\t') => Indent,
+                Some(c) => {
+                    if let Some(punct) = self.could_make_punct(c) {
+                        // pop the lenght of the punctuation.
+                        for _ in 0..punct.size() - 1 {
+                            self.pop();
+                        }
+                        break 'm TokenType::Punct(punct);
+                    }
+                    let err = self
+                        .dcx
+                        .struct_err(format!("unknown start of token {c:?}"), self.current_span());
+                    return Unrecovered(err);
+                }
+                None => EOF,
             }
-            Some('\n') => NewLine,
-            // an indentation is either 4 spaces or a tabulation.
-            Some(' ') if self.window(4) == "    " => {
-                self.pop();
-                self.pop();
-                self.pop();
-                Indent
-            }
-            Some('\t') => Indent,
-            Some(c) => {
-                let err = self
-                    .dcx
-                    .struct_err(format!("unknown start of token {c:?}"), self.current_span());
-                return Unrecovered(err);
-            }
-            None => EOF,
         };
 
         Good(Token {
@@ -220,8 +231,7 @@ impl<'r> Lexer<'r> {
     pub(crate) fn skip_useless_whitespace(&mut self) {
         while let Some(c) = self.peek() {
             match c {
-                ' ' if self.window(4) != "    " => {
-                    dbg!("POPED A SPACE");
+                ' ' if self.window(4) != Some("    ") => {
                     self.pop();
                 }
                 '\u{000B}'..='\u{000D}'
@@ -239,5 +249,52 @@ impl<'r> Lexer<'r> {
                 _ => break,
             }
         }
+    }
+
+    pub(crate) fn could_make_punct(&mut self, c: char) -> Option<Punctuation> {
+        dbg!((c, self.peek().unwrap()));
+        use Punctuation::*;
+        Some(match c {
+            // single char punctuation
+            '(' => RParen,
+            ')' => LParen,
+            '[' => RBracket,
+            ']' => LBracket,
+            '{' => RBrace,
+            '}' => LBrace,
+            ':' => Colon,
+            ';' => Semi,
+            ',' => Comma,
+            '@' => At,
+            '*' => Asterisk,
+            '^' => Caret,
+            '.' => Dot,
+            '-' => Minus,
+            '%' => Percent,
+            '+' => Plus,
+            '/' => Slash,
+
+            // ambigious
+            '!' => match self.peek() {
+                Some('=') => ExclamationmarkEqual,
+                _ => Exclamationmark,
+            },
+            '=' => match self.peek() {
+                Some('=') => Equal2,
+                _ => Equal,
+            },
+            '<' => match self.peek() {
+                Some('<') => LArrow2,
+                Some('=') => LArrowEqual,
+                _ => LArrow,
+            },
+            '>' => match self.peek() {
+                Some('>') => RArrow2,
+                Some('=') => RArrowEqual,
+                _ => RArrow,
+            },
+
+            _ => return None,
+        })
     }
 }

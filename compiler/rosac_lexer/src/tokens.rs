@@ -58,6 +58,7 @@ pub enum Punctuation {
     Equal,
     Equal2,
     Exclamationmark,
+    ExclamationmarkEqual,
     LArrow,
     LArrow2,
     LArrowEqual,
@@ -68,6 +69,18 @@ pub enum Punctuation {
     RArrow2,
     RArrowEqual,
     Slash,
+}
+
+impl Punctuation {
+    pub fn size(&self) -> usize {
+        use Punctuation::*;
+        match self {
+            RParen | LParen | RBracket | LBracket | RBrace | LBrace | Colon | Semi | Comma | At
+            | Asterisk | Caret | Dot | Equal | Exclamationmark | LArrow | Minus | Percent
+            | Plus | RArrow | Slash => 1,
+            Equal2 | ExclamationmarkEqual | LArrow2 | LArrowEqual | RArrow2 | RArrowEqual => 2,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

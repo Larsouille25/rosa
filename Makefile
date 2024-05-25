@@ -6,7 +6,9 @@ doc:
 docopen:
 	cargo doc $(DOCFLAGS) --open
 
+WATCHENV := RUST_BACKTRACE=1
+
 watch:
-	cargo watch -s "clear && cargo run $(path)" --no-vcs-ignores
+	cargo watch -s "clear && $(WATCHENV) cargo run $(path)" --no-vcs-ignores
 
 .PHONY: doc docopen
