@@ -1,9 +1,9 @@
 [workspace]
 members = [
-  "compiler/rosa_errors",
-  "compiler/rosac_lexer",
-  "compiler/rosac",
-  "compiler/rosa_comm",
+  "rosac",
+  "internals/rosa_errors",
+  "internals/rosac_lexer",
+  "internals/rosa_comm",
 ]
 
 resolver = "2"
@@ -15,9 +15,9 @@ license = "BSD-2-Clause"
 authors = ["Thibault V. (@Larsouille25)"]
 
 [workspace.dependencies]
-rosac = { path = "compiler/rosac" }
-rosac_lexer = { path = "compiler/rosac_lexer"}
-rosa_errors = { path = "compiler/rosa_errors"}
-rosa_comm = { path = "compiler/rosa_comm"}
+rosac = { path = "rosac" }
+rosac_lexer = { path = "internals/rosac_lexer"}
+rosa_errors = { path = "internals/rosa_errors"}
+rosa_comm = { path = "internals/rosa_comm"}
 
 termcolor = "1.4.1"
