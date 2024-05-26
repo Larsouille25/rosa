@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use rosa_comm::Span;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
     pub tt: TokenType,
     pub loc: Span,

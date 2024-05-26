@@ -14,6 +14,7 @@ use rosa_errors::{
     RosaRes::{self, *},
 };
 
+pub mod abs;
 pub mod literals;
 pub mod tokens;
 
@@ -252,7 +253,6 @@ impl<'r> Lexer<'r> {
     }
 
     pub(crate) fn could_make_punct(&mut self, c: char) -> Option<Punctuation> {
-        dbg!((c, self.peek().unwrap()));
         use Punctuation::*;
         Some(match c {
             // single char punctuation

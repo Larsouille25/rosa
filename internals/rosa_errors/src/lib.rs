@@ -71,6 +71,14 @@ impl<'r> Diag<'r> {
     pub fn format(&self, s: &mut StandardStream) -> io::Result<()> {
         self.diag.format(self.dcx, s)
     }
+
+    /// Creates a new [Diag] from a [DiagInner]
+    ///
+    /// [Diag]: crate::Diag
+    /// [DiagInner]: crate::DiagInner
+    pub fn from_inner(inner: DiagInner, dcx: &'r DiagCtxt<'r>) -> Diag<'r> {
+        Self { dcx, diag: inner }
+    }
 }
 
 /// `Diag` for `Diagnostic`
