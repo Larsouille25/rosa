@@ -33,6 +33,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rosac_parser"
+version = "0.0.0"
+dependencies = [
+ "rosa_comm",
+ "rosa_errors",
+ "rosac_lexer",
+]
+
+[[package]]
 name = "termcolor"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

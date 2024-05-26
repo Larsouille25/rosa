@@ -4,6 +4,7 @@ members = [
   "internals/rosa_errors",
   "internals/rosac_lexer",
   "internals/rosa_comm",
+  "internals/rosac_parser",
 ]
 
 resolver = "2"

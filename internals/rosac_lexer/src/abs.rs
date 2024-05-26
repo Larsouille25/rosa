@@ -28,6 +28,9 @@ pub trait AbsLexer {
 
     /// Did we reached the end of file?
     fn finished(&self) -> bool;
+
+    /// Get the Diag Context.
+    fn dcx(&self) -> &DiagCtxt;
 }
 
 impl AbsLexer for Lexer<'_> {
@@ -54,6 +57,10 @@ impl AbsLexer for Lexer<'_> {
 
     fn finished(&self) -> bool {
         self.idx >= self.file.filetext.len().into()
+    }
+
+    fn dcx(&self) -> &DiagCtxt {
+        self.dcx
     }
 }
 
@@ -149,5 +156,9 @@ impl<'r> AbsLexer for BufferedLexer<'r> {
 
     fn finished(&self) -> bool {
         self.inner.finished() && self.buf.is_empty()
+    }
+
+    fn dcx(&self) -> &DiagCtxt {
+        self.inner.dcx()
     }
 }
