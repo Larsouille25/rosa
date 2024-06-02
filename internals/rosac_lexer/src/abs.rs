@@ -89,7 +89,7 @@ impl<'r> BufferedLexer<'r> {
     pub fn pre_lex(&mut self, amount: usize) -> Vec<DiagInner> {
         let mut inner_diags = Vec::new();
 
-        for i in 1..=amount {
+        for _ in 1..=amount {
             match self.inner.lex() {
                 RosaRes::Good(tok) => {
                     if tok.tt == TokenType::EOF {
@@ -131,7 +131,7 @@ impl<'r> AbsLexer for BufferedLexer<'r> {
         if self.buf.is_empty() {
             self.inner.consume()
         } else {
-            let tok = self.buf.get(0)?.clone();
+            let tok = self.buf.first()?.clone();
             self.buf.rotate_left(1);
             self.buf.truncate(self.buf.len() - 1);
             Some(tok)

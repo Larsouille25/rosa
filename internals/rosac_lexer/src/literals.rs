@@ -15,7 +15,7 @@ impl<'r> super::Lexer<'r> {
             }),
             Err(ParseUIntError::IntegerOverflow) => RosaRes::Unrecovered(
                 self.dcx
-                    .struct_err(format!("integer literal is too large"), self.current_span()),
+                    .struct_err("integer literal is too large", self.current_span()),
             ),
             Err(ParseUIntError::DigitOutOfRange(loc)) => RosaRes::Unrecovered(self.dcx.struct_err(
                 format!(
@@ -47,15 +47,13 @@ pub(crate) enum ParseUIntError {
 }
 
 pub(crate) fn parse_u64(input: &str, radix: u8) -> Result<u64, ParseUIntError> {
-    if radix < 2 || radix > 36 {
+    if !(2..=36).contains(&radix) {
         return Err(ParseUIntError::InvalidRadix);
     }
 
-    let mut chars = input.char_indices().peekable();
-
     let mut result: u64 = 0;
 
-    while let Some((i, c)) = chars.next() {
+    for (i, c) in input.char_indices().peekable() {
         let digit = match c {
             '0'..='9' => (c as u8 - b'0') as u32,
             'a'..='z' => (c as u8 - b'a' + 10) as u32,
