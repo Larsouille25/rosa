@@ -1,6 +1,6 @@
 //! Rosa's tokens.
 
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
 use rosa_comm::Span;
 
@@ -31,6 +31,22 @@ pub enum TokenType {
 
     // End of file
     EOF,
+}
+
+impl Display for TokenType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::KW(kw) => write!(f, "{kw}"),
+            Self::Punct(punct) => write!(f, "{punct}"),
+            Self::Int(i) => write!(f, "{i}"),
+            Self::Str(s) => write!(f, "{s:?}"),
+            Self::Char(c) => write!(f, "{c:?}"),
+            Self::Ident(id) => write!(f, "{id}"),
+            Self::Indent => write!(f, "indendation"),
+            Self::NewLine => write!(f, "new line"),
+            Self::EOF => write!(f, "end of file"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -83,6 +99,48 @@ impl Punctuation {
     }
 }
 
+impl Display for Punctuation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::RParen => "(",
+                Self::LParen => ")",
+
+                Self::RBracket => "[",
+                Self::LBracket => "]",
+
+                Self::RBrace => "{",
+                Self::LBrace => "}",
+
+                Self::Colon => ":",
+                Self::Semi => ";",
+                Self::Comma => ",",
+                Self::At => "@",
+
+                Self::Asterisk => "*",
+                Self::Caret => "^",
+                Self::Dot => ".",
+                Self::Equal => "=",
+                Self::Equal2 => "==",
+                Self::Exclamationmark => "!",
+                Self::ExclamationmarkEqual => "!=",
+                Self::LArrow => "<",
+                Self::LArrow2 => "<<",
+                Self::LArrowEqual => "<=",
+                Self::Minus => "-",
+                Self::Percent => "%",
+                Self::Plus => "+",
+                Self::RArrow => ">",
+                Self::RArrow2 => ">>",
+                Self::RArrowEqual => ">=",
+                Self::Slash => "/",
+            }
+        )
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Keyword {
     Fun,
@@ -108,5 +166,23 @@ impl FromStr for Keyword {
             "false" => Keyword::False,
             _ => return Err(()),
         })
+    }
+}
+
+impl Display for Keyword {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Fun => "keyword fun",
+                Self::Ret => "keyword ret",
+                Self::Val => "keyword val",
+                Self::Var => "keyword var",
+                Self::Type => "keyword type",
+                Self::True => "keyword true",
+                Self::False => "keyword false",
+            }
+        )
     }
 }
