@@ -373,3 +373,13 @@ pub enum RosaRes<T, E, Es = Vec<E>> {
     Recovered(T, Es),
     Unrecovered(E),
 }
+
+impl<T, E, Es> RosaRes<T, E, Es> {
+    pub fn unwrap(self) -> T {
+        match self {
+            Self::Good(ok) => ok,
+            Self::Recovered(..) => panic!("Called `RosaRes::unwrap()` on a `Recovered` value"),
+            Self::Unrecovered(..) => panic!("Called `RosaRes::unwrap()` on a `Unrecovered` value"),
+        }
+    }
+}
