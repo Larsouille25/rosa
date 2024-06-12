@@ -21,6 +21,7 @@ dependencies = [
  "rosa_comm",
  "rosa_errors",
  "rosac_lexer",
+ "rosac_parser",
  "termcolor",
 ]
 

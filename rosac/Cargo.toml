@@ -8,6 +8,7 @@ authors.workspace = true
 
 [dependencies]
 rosac_lexer.workspace = true
+rosac_parser.workspace = true
 rosa_comm.workspace = true
 rosa_errors.workspace = true
 

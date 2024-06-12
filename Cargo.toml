@@ -17,8 +17,9 @@ authors = ["Thibault V. (@Larsouille25)"]
 
 [workspace.dependencies]
 rosac = { path = "rosac" }
-rosac_lexer = { path = "internals/rosac_lexer"}
-rosa_errors = { path = "internals/rosa_errors"}
-rosa_comm = { path = "internals/rosa_comm"}
+rosac_lexer = { path = "internals/rosac_lexer" }
+rosac_parser = { path = "internals/rosac_parser" }
+rosa_errors = { path = "internals/rosa_errors" }
+rosa_comm = { path = "internals/rosa_comm" }
 
 termcolor = "1.4.1"
