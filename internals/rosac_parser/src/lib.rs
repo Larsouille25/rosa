@@ -40,8 +40,13 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
         self.lexer.peek_nth(idx)
     }
 
-    pub fn peek_tok(&mut self) -> Option<&Token> {
+    pub fn try_peek_tok(&mut self) -> Option<&Token> {
         self.nth_tok(0)
+    }
+
+    pub fn peek_tok(&mut self) -> &Token {
+        self.try_peek_tok()
+            .expect("Tried to peek a token after consuming the end of file token.")
     }
 
     pub fn begin_parsing(&mut self) -> RosaRes<TopLevelAst, Diag<'_>> {
@@ -113,7 +118,7 @@ impl Display for AstNodes {
 #[macro_export]
 macro_rules! expect_token {
     ($parser:expr => [ $($token:pat, $result:expr);* ] else $unexpected:block) => (
-        match $parser.peek_tok().unwrap().tt {
+        match $parser.peek_tok().tt {
             $(
                 $token => {
                     ($result, $parser.consume_tok().unwrap().loc)
@@ -126,7 +131,7 @@ macro_rules! expect_token {
     ($parser:expr => [ $($token:pat, $result:expr);* ], $expected:expr) => (
         $crate::expect_token!($parser => [ $($token, $result)* ] else {
             // TODO: maybe do some better error reporting
-            let found = $parser.peek_tok().cloned().unwrap();
+            let found = $parser.peek_tok().clone();
     //                     .struct_err(format!("expected {}, found {tt}", expect.format()), loc),
             return RosaRes::Unrecovered(
                 $parser

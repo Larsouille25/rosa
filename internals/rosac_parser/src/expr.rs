@@ -26,8 +26,8 @@ impl AstNode for Expression {
 
     fn parse<'a, L: AbsLexer>(parser: &'a mut Parser<'_, L>) -> RosaRes<Self::Output, Diag<'a>> {
         match parser.peek_tok() {
-            Some(Token { tt: Int(_), .. }) => parse_intlit_expr(parser),
-            Some(t) => {
+            Token { tt: Int(_), .. } => parse_intlit_expr(parser),
+            t => {
                 let t = t.clone();
                 Unrecovered(
                     parser
@@ -35,7 +35,6 @@ impl AstNode for Expression {
                         .struct_err(expected_tok_msg(t.tt, [FmtToken::IntLiteral]), t.loc),
                 )
             }
-            None => todo!("idk how to handle this?"),
         }
     }
 }
