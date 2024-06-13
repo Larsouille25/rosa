@@ -330,6 +330,12 @@ impl<'r> DiagCtxt<'r> {
         self.diags.borrow_mut().push(diag.diag);
     }
 
+    pub fn emit_diags<'r2>(&self, diags: impl IntoIterator<Item = Diag<'r2>>) {
+        for diag in diags {
+            diag.emit();
+        }
+    }
+
     pub fn failed(&self) -> bool {
         for diag in self.diags.borrow().iter() {
             if diag.is_error() {
