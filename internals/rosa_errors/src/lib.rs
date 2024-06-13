@@ -388,4 +388,24 @@ impl<T, E, Es> RosaRes<T, E, Es> {
             Self::Unrecovered(..) => panic!("Called `RosaRes::unwrap()` on a `Unrecovered` value"),
         }
     }
+
+    pub fn unwrap_unrecovered(self) -> E {
+        match self {
+            Self::Good(..) => panic!("Called `RosaRes::unwrap_unrecovered()` on a `Good` value"),
+            Self::Recovered(..) => {
+                panic!("Called `RosaRes::unwrap_unrecovered()` on a `Recovered` value")
+            }
+            Self::Unrecovered(err) => err,
+        }
+    }
+
+    pub fn unwrap_good(self) -> (T, Option<Es>) {
+        match self {
+            Self::Good(ok) => (ok, None),
+            Self::Recovered(ok, errs) => (ok, Some(errs)),
+            Self::Unrecovered(..) => {
+                panic!("Called `RosaRes::unwrap_good()` on a `Unrecovered` value")
+            }
+        }
+    }
 }
