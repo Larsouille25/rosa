@@ -44,9 +44,8 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
         self.nth_tok(0)
     }
 
-    pub fn begin_parsing(&mut self) -> TopLevelAst {
-        dbg!(TopLevelAst::parse(self).unwrap());
-        todo!()
+    pub fn begin_parsing(&mut self) -> RosaRes<TopLevelAst, Diag<'_>> {
+        TopLevelAst::parse(self)
     }
 }
 
@@ -91,14 +90,33 @@ impl Display for FmtToken {
     }
 }
 
+pub enum AstNodes {
+    Expression,
+    Statement,
+    FunctionDef,
+    Definition,
+    ImportDecl,
+}
+
+impl Display for AstNodes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Expression => write!(f, "expression"),
+            Self::Statement => write!(f, "statement"),
+            Self::FunctionDef => write!(f, "function definition"),
+            Self::Definition => write!(f, "definition"),
+            Self::ImportDecl => write!(f, "import declaration"),
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! expect_token {
     ($parser:expr => [ $($token:pat, $result:expr);* ] else $unexpected:block) => (
         match $parser.peek_tok().unwrap().tt {
             $(
                 $token => {
-                    $parser.consume_tok();
-                    $result
+                    ($result, $parser.consume_tok().unwrap().loc)
                 }
             )*
             _ => $unexpected
@@ -119,7 +137,10 @@ macro_rules! expect_token {
     )
 }
 
-fn expected_tok_msg<const N: usize>(found: impl Display, expected: [impl Display; N]) -> String {
+pub fn expected_tok_msg<const N: usize>(
+    found: impl Display,
+    expected: [impl Display; N],
+) -> String {
     format!("expected {}, found {}", format_expected(expected), found)
 }
 
