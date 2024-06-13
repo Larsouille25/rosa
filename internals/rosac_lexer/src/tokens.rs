@@ -36,12 +36,12 @@ pub enum TokenType {
 impl Display for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::KW(kw) => write!(f, "{kw}"),
-            Self::Punct(punct) => write!(f, "{punct}"),
-            Self::Int(i) => write!(f, "{i}"),
-            Self::Str(s) => write!(f, "{s:?}"),
-            Self::Char(c) => write!(f, "{c:?}"),
-            Self::Ident(id) => write!(f, "{id}"),
+            Self::KW(kw) => write!(f, "keyword `{kw}``"),
+            Self::Punct(punct) => write!(f, "`{punct}`"),
+            Self::Int(i) => write!(f, "int `{i}`"),
+            Self::Str(s) => write!(f, "string {s:?}"),
+            Self::Char(c) => write!(f, "char {c:?}"),
+            Self::Ident(id) => write!(f, "identifier `{id}`"),
             Self::Indent => write!(f, "indendation"),
             Self::NewLine => write!(f, "new line"),
             Self::EOF => write!(f, "end of file"),
