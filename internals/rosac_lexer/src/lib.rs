@@ -297,3 +297,108 @@ impl<'r> Lexer<'r> {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const UNIT_TEST_PATH: &str = "<unit test>";
+    const TEXT1: &str = "Rosa 🌹";
+
+    macro_rules! unit_test_path {
+        ($path_str:ident) => {
+            Path::new($path_str.into())
+        };
+        () => {
+            unit_test_path!(UNIT_TEST_PATH)
+        };
+    }
+
+    #[test]
+    fn lexr_file_peek_pop() {
+        let mut lfile = LexrFile::new(unit_test_path!(), TEXT1);
+        assert_eq!(lfile.peek(), Some('R'));
+        assert_eq!(lfile.pop(), Some('R'));
+
+        assert_eq!(lfile.peek(), Some('o'));
+        assert_eq!(lfile.pop(), Some('o'));
+
+        assert_eq!(lfile.peek(), Some('s'));
+        assert_eq!(lfile.pop(), Some('s'));
+
+        assert_eq!(lfile.peek(), Some('a'));
+        assert_eq!(lfile.pop(), Some('a'));
+
+        assert_eq!(lfile.peek(), Some(' '));
+        assert_eq!(lfile.pop(), Some(' '));
+
+        assert_eq!(lfile.peek(), Some('🌹'));
+        assert_eq!(lfile.pop(), Some('🌹'));
+
+        assert_eq!(lfile.pop(), None);
+        assert_eq!(lfile.pop(), None);
+    }
+
+    #[test]
+    fn lexr_file_reset() {
+        let mut lfile = LexrFile::new(unit_test_path!(), TEXT1);
+        assert_eq!(lfile.pop(), Some('R'));
+        assert_eq!(lfile.pop(), Some('o'));
+        assert_eq!(lfile.pop(), Some('s'));
+        assert_eq!(lfile.pop(), Some('a'));
+        lfile.reset_to(3);
+        assert_eq!(lfile.peek(), Some('a'));
+        assert_eq!(lfile.pop(), Some('a'));
+
+        lfile.reset_to(6);
+        assert_eq!(lfile.pop(), None);
+        assert_eq!(lfile.pop(), None);
+    }
+
+    #[test]
+    fn lexer_peek_pop() {
+        let dcx = DiagCtxt::new(TEXT1, unit_test_path!());
+        let mut lexer = Lexer::new(unit_test_path!(), TEXT1, &dcx);
+
+        assert_eq!(lexer.pop(), Some('R'));
+
+        assert_eq!(lexer.peek(), Some('o'));
+        assert_eq!(lexer.peek(), Some('o'));
+        assert_eq!(lexer.pop(), Some('o'));
+
+        assert_eq!(lexer.pop(), Some('s'));
+
+        assert_eq!(lexer.pop(), Some('a'));
+
+        assert_eq!(lexer.current_span(), Span::new(0, 4));
+
+        assert_eq!(lexer.pop(), Some(' '));
+        assert_eq!(lexer.pop(), Some('🌹'));
+        assert_eq!(lexer.pop(), None);
+    }
+
+    #[test]
+    fn lexer_identifier_and_keywords() {
+        let text = "abc fun return val var type true false";
+        let dcx = DiagCtxt::new(text, unit_test_path!());
+        let mut lexer = Lexer::new(unit_test_path!(), text, &dcx);
+        assert_eq!(lexer.lex().unwrap().tt, TokenType::Ident("abc".to_string()));
+        assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::Fun));
+        assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::Return));
+        assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::Val));
+        assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::Var));
+        assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::Type));
+        assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::True));
+        assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::False));
+        assert_eq!(lexer.lex().unwrap().tt, TokenType::EOF);
+    }
+
+    #[test]
+    #[should_panic]
+    fn lexer_too_large_int() {
+        let text = u128::MAX.to_string();
+        let dcx = DiagCtxt::new(&text, unit_test_path!());
+        let mut lexer = Lexer::new(unit_test_path!(), &text, &dcx);
+        lexer.lex().unwrap();
+    }
+}
