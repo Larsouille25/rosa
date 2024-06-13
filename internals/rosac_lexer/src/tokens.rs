@@ -144,7 +144,7 @@ impl Display for Punctuation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Keyword {
     Fun,
-    Ret,
+    Return,
     Val,
     Var,
     Type,
@@ -158,7 +158,7 @@ impl FromStr for Keyword {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
             "fun" => Keyword::Fun,
-            "ret" => Keyword::Ret,
+            "return" => Keyword::Return,
             "val" => Keyword::Val,
             "var" => Keyword::Var,
             "type" => Keyword::Type,
@@ -176,7 +176,7 @@ impl Display for Keyword {
             "{}",
             match self {
                 Self::Fun => "keyword fun",
-                Self::Ret => "keyword ret",
+                Self::Return => "keyword return",
                 Self::Val => "keyword val",
                 Self::Var => "keyword var",
                 Self::Type => "keyword type",
