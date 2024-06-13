@@ -130,9 +130,7 @@ macro_rules! expect_token {
 
     ($parser:expr => [ $($token:pat, $result:expr);* ], $expected:expr) => (
         $crate::expect_token!($parser => [ $($token, $result)* ] else {
-            // TODO: maybe do some better error reporting
             let found = $parser.peek_tok().clone();
-    //                     .struct_err(format!("expected {}, found {tt}", expect.format()), loc),
             return RosaRes::Unrecovered(
                 $parser
                     .dcx()
