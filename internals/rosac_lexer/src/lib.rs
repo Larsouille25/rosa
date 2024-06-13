@@ -28,6 +28,15 @@ pub struct LexrFile<'r> {
 }
 
 impl<'r> LexrFile<'r> {
+    pub fn new(filepath: &'r Path, filetext: &'r str) -> LexrFile<'r> {
+        LexrFile {
+            filepath,
+            filetext,
+            idx: 0.into(),
+            iter: filetext.char_indices().peekable(),
+        }
+    }
+
     pub fn pop(&mut self) -> Option<char> {
         let (i, ch) = self.iter.next()?;
         self.idx = i.into();
@@ -103,12 +112,7 @@ pub struct Lexer<'r> {
 impl<'r> Lexer<'r> {
     pub fn new(filepath: &'r Path, filetext: &'r str, dcx: &'r DiagCtxt<'r>) -> Lexer<'r> {
         Lexer {
-            file: LexrFile {
-                filepath,
-                filetext,
-                idx: 0.into(),
-                iter: filetext.char_indices().peekable(),
-            },
+            file: LexrFile::new(filepath, filetext),
             prev_idx: 0.into(),
             idx: 0.into(),
             dcx,
@@ -119,11 +123,6 @@ impl<'r> Lexer<'r> {
     pub fn pop(&mut self) -> Option<char> {
         self.idx += 1;
         self.file.pop()
-    }
-
-    /// Advance the underlying iterator without returning the result.
-    pub fn advance(&mut self) {
-        self.file.pop();
     }
 
     pub fn peek(&mut self) -> Option<char> {
