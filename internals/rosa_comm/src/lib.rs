@@ -78,6 +78,15 @@ impl Span {
             hi: self.hi + offset.into(),
         }
     }
+
+    /// Takes the low part of the left-hand side and the high part of the right
+    /// -hand side and combine them into one Span.
+    pub fn from_ends(lhs: Span, rhs: Span) -> Span {
+        Span {
+            lo: lhs.lo,
+            hi: rhs.hi,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
