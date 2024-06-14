@@ -1,5 +1,8 @@
 use core::fmt;
-use std::{fmt::Display, fmt::Write, marker::PhantomData};
+use std::{
+    fmt::{Display, Write},
+    marker::PhantomData,
+};
 
 use rosa_errors::{Diag, DiagCtxt, RosaRes};
 use rosac_lexer::{
@@ -10,6 +13,7 @@ use rosac_lexer::{
 use crate::expr::Expression;
 
 pub mod expr;
+pub mod precedence;
 
 pub struct Parser<'r, L: AbsLexer = BufferedLexer<'r>> {
     lexer: L,
@@ -51,6 +55,10 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
 
     pub fn begin_parsing(&mut self) -> RosaRes<TopLevelAst, Diag> {
         TopLevelAst::parse(self)
+    }
+
+    pub fn default_precedence(&self) -> u16 {
+        0
     }
 }
 
@@ -143,7 +151,10 @@ macro_rules! expect_token {
 #[macro_export]
 macro_rules! parse {
     ($parser:expr => $node:ty) => {
-        match <$node as $crate::AstNode>::parse($parser) {
+        parse!(fn; $parser => <$node as $crate::AstNode>::parse)
+    };
+    (fn; $parser:expr => $parsing_fn:expr $(, $arg:expr)*) => (
+        match $parsing_fn($parser $(, $arg)*) {
             RosaRes::Good(ast) => ast,
             RosaRes::Recovered(ast, diags) => {
                 // for some obscur borrow checker reason we cannot use the
@@ -155,7 +166,7 @@ macro_rules! parse {
             }
             RosaRes::Unrecovered(err) => return RosaRes::Unrecovered(err),
         }
-    };
+    )
 }
 
 pub fn expected_tok_msg<const N: usize>(

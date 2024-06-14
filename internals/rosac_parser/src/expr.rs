@@ -5,12 +5,38 @@ use rosa_errors::{
 };
 use rosac_lexer::{
     abs::AbsLexer,
-    tokens::{Punctuation, Token, TokenType::*},
+    tokens::{
+        Punctuation, Token,
+        TokenType::{self, *},
+    },
 };
 
-use crate::{expect_token, expected_tok_msg, parse, AstNode, FmtToken, Parser};
+use crate::{
+    expect_token, expected_tok_msg, parse, precedence::operator_precedence, AstNode, FmtToken,
+    Parser,
+};
+
+/// An operator, either a binary operator or a unary operator.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Operator {
+    Binary(BinaryOp),
+    // Unary(UnaryOp),
+}
+
+impl From<BinaryOp> for Operator {
+    fn from(value: BinaryOp) -> Self {
+        Self::Binary(value)
+    }
+}
+
+// impl From<UnaryOp> for Operator {
+//     fn from(value: UnaryOp) -> Self {
+//         Self::Unary(value)
+//     }
+// }
 
 /// Binary Operators
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum BinaryOp {
     /// Multiplication
     Mul,
@@ -63,6 +89,12 @@ impl BinaryOp {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum Associativity {
+    LeftToRight,
+    RightToLeft,
+}
+
 #[derive(Debug, Clone)]
 pub struct Expression {
     pub expr: ExpressionInner,
@@ -73,20 +105,37 @@ impl AstNode for Expression {
     type Output = Self;
 
     fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> RosaRes<Self::Output, Diag> {
-        let lhs = parse!(parser => ExpressionInner);
+        let mut lhs = parse!(parser => ExpressionInner);
 
         let mut binary_times: u8 = 0;
         loop {
-            lhs = match parser.peek_tok().tt {
+            lhs = match &parser.peek_tok().tt {
+                TokenType::Punct(p)
+                    if BinaryOp::from_punct(p.clone()).is_some() && binary_times != 1 =>
+                {
+                    binary_times += 1;
+                    parse!(fn; parser => parse_binary_expr, parser.default_precedence(), lhs)
+                }
                 _ => break,
+            };
+            if binary_times >= 2 {
+                binary_times = 0;
             }
         }
-        todo!()
+
+        Good(lhs)
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum ExpressionInner {
+    BinaryExpr {
+        lhs: Box<Expression>,
+        op: BinaryOp,
+        rhs: Box<Expression>,
+    },
+
+    // primary expression
     IntLiteral(u64),
 }
 
@@ -114,4 +163,68 @@ pub fn parse_intlit_expr(parser: &mut Parser<'_, impl AbsLexer>) -> RosaRes<Expr
         expr: ExpressionInner::IntLiteral(i),
         loc,
     })
+}
+
+pub fn parse_binary_expr(
+    parser: &mut Parser<'_, impl AbsLexer>,
+    min_precedence: u16,
+    mut lhs: Expression,
+) -> RosaRes<Expression, Diag> {
+    dbg!(&min_precedence, &lhs, &parser.peek_tok());
+
+    while let TokenType::Punct(punct) = &parser.peek_tok().tt {
+        // check if the punctuation is a binary operator
+        let op = match BinaryOp::from_punct(punct.clone()) {
+            Some(op) => op,
+            None => break,
+        };
+
+        // get the precedence of the operator
+        let (_, op_precede) = operator_precedence(op.clone());
+
+        // check if the binary operator has more precedence than what's
+        // required.
+        if op_precede < min_precedence {
+            break;
+        }
+
+        // consume the binary operator.
+        parser.consume_tok();
+
+        // parse the right-hand side of the binary expression
+        let mut rhs = parse!(parser => ExpressionInner);
+
+        while let TokenType::Punct(lh_punct) = &parser.peek_tok().tt {
+            // check if the lookahead punctuation is a binary operator
+            let lh_op = match BinaryOp::from_punct(lh_punct.clone()) {
+                Some(op) => op,
+                None => break,
+            };
+
+            // get the precedence of the lookahead operator
+            let (lh_assoc, lh_op_precede) = operator_precedence(lh_op);
+
+            // break if the precendence of the lookahead operator is smaller
+            // than the current operator's one. if associativity is LeftToRight
+            // we also break if the precedences are equal.
+            match lh_assoc {
+                Associativity::LeftToRight if lh_op_precede <= op_precede => break,
+                Associativity::RightToLeft if lh_op_precede < op_precede => break,
+                _ => {}
+            }
+            rhs = parse!(fn; parser => parse_binary_expr, lh_op_precede, rhs);
+        }
+        let loc = Span::from_ends(lhs.loc.clone(), rhs.loc.clone());
+
+        lhs = Expression {
+            expr: ExpressionInner::BinaryExpr {
+                lhs: Box::new(lhs),
+                op,
+                rhs: Box::new(rhs),
+            },
+            loc,
+        };
+    }
+
+    Good(lhs)
 }

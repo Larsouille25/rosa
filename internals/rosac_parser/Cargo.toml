@@ -7,6 +7,9 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
+lazy_static.workspace = true
+
+# internal libs
 rosa_comm.workspace = true
 rosa_errors.workspace = true
 rosac_lexer.workspace = true
