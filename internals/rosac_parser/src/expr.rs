@@ -72,7 +72,7 @@ pub struct Expression {
 impl AstNode for Expression {
     type Output = Self;
 
-    fn parse<'r, L: AbsLexer>(parser: &'r mut Parser<'_, L>) -> RosaRes<Self::Output, Diag<'r>> {
+    fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> RosaRes<Self::Output, Diag> {
         let lhs = parse!(parser => ExpressionInner);
 
         let mut binary_times: u8 = 0;
@@ -93,7 +93,7 @@ pub enum ExpressionInner {
 impl AstNode for ExpressionInner {
     type Output = Expression;
 
-    fn parse<'a, L: AbsLexer>(parser: &'a mut Parser<'_, L>) -> RosaRes<Self::Output, Diag<'a>> {
+    fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> RosaRes<Self::Output, Diag> {
         match parser.peek_tok() {
             Token { tt: Int(_), .. } => parse_intlit_expr(parser),
             t => {
@@ -108,9 +108,7 @@ impl AstNode for ExpressionInner {
     }
 }
 
-pub fn parse_intlit_expr<'a>(
-    parser: &'a mut Parser<'_, impl AbsLexer>,
-) -> RosaRes<Expression, Diag<'a>> {
+pub fn parse_intlit_expr(parser: &mut Parser<'_, impl AbsLexer>) -> RosaRes<Expression, Diag> {
     let (i, loc) = expect_token!(parser => [Int(i), i], [FmtToken::IntLiteral]);
     Good(Expression {
         expr: ExpressionInner::IntLiteral(i),

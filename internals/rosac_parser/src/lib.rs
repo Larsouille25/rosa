@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{fmt::Display, fmt::Write, marker::PhantomData};
 
-use rosa_errors::{Diag, DiagCtxt, DiagInner, RosaRes};
+use rosa_errors::{Diag, DiagCtxt, RosaRes};
 use rosac_lexer::{
     abs::{AbsLexer, BufferedLexer},
     tokens::{Keyword, Punctuation, Token},
@@ -49,7 +49,7 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
             .expect("Tried to peek a token after consuming the end of file token.")
     }
 
-    pub fn begin_parsing(&mut self) -> RosaRes<TopLevelAst, Diag<'_>> {
+    pub fn begin_parsing(&mut self) -> RosaRes<TopLevelAst, Diag> {
         TopLevelAst::parse(self)
     }
 }
@@ -57,7 +57,7 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
 pub trait AstNode: fmt::Debug {
     type Output;
 
-    fn parse<'r, L: AbsLexer>(parser: &'r mut Parser<'_, L>) -> RosaRes<Self::Output, Diag<'r>>;
+    fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> RosaRes<Self::Output, Diag>;
 }
 
 pub enum FmtToken {
@@ -145,12 +145,11 @@ macro_rules! parse {
     ($parser:expr => $node:ty) => {
         match <$node as $crate::AstNode>::parse($parser) {
             RosaRes::Good(ast) => ast,
-            RosaRes::Recovered(ast, errs) => {
-                let errs = errs.clone();
+            RosaRes::Recovered(ast, diags) => {
                 // for some obscur borrow checker reason we cannot use the
                 // `emit_diags` method we are constrained to do it manually
-                for err in errs {
-                    err.emit();
+                for diag in diags {
+                    $parser.dcx().emit_diag(diag);
                 }
                 ast
             }

@@ -142,7 +142,7 @@ impl<'r> Lexer<'r> {
             .get(self.prev_idx.0 as usize..self.prev_idx.0 as usize + size)
     }
 
-    pub fn lex(&mut self) -> RosaRes<Token, Diag<'_>> {
+    pub fn lex(&mut self) -> RosaRes<Token, Diag> {
         self.skip_useless_whitespace();
 
         self.prev_idx = self.idx;
@@ -205,7 +205,7 @@ impl<'r> Lexer<'r> {
         (word, numeric)
     }
 
-    pub(crate) fn lex_word(&mut self, c: char) -> RosaRes<Token, Diag<'_>> {
+    pub(crate) fn lex_word(&mut self, c: char) -> RosaRes<Token, Diag> {
         let (word, numeric) = self.make_word(c);
 
         let tt = if numeric {

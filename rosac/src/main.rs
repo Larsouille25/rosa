@@ -26,11 +26,11 @@ fn main() {
         RosaRes::Good(ast) => {
             dbg!(ast);
         }
-        RosaRes::Recovered(ast, errs) => {
-            dcx.emit_diags(errs);
+        RosaRes::Recovered(ast, diags) => {
+            dcx.emit_diags(diags);
             dbg!(ast);
         }
-        RosaRes::Unrecovered(err) => err.emit(),
+        RosaRes::Unrecovered(diag) => dcx.emit_diag(diag),
     }
 
     dcx.render_all(&mut s);

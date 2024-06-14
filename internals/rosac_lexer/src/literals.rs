@@ -7,7 +7,7 @@ use rosa_errors::{Diag, RosaRes};
 use crate::tokens::{Token, TokenType};
 
 impl<'r> super::Lexer<'r> {
-    pub(crate) fn lex_int(&mut self, num: String) -> RosaRes<Token, Diag<'_>> {
+    pub(crate) fn lex_int(&mut self, num: String) -> RosaRes<Token, Diag> {
         match parse_u64(&num, 10) {
             Ok(lit) => RosaRes::Good(Token {
                 tt: TokenType::Int(lit),

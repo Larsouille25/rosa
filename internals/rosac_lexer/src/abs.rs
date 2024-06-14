@@ -1,5 +1,5 @@
 //! Abstraction over the lexer to allow easy testing without performance overhead.
-use rosa_errors::{Diag, DiagCtxt, DiagInner, RosaRes};
+use rosa_errors::{Diag, DiagCtxt, RosaRes};
 
 use crate::{
     tokens::{Token, TokenType},
@@ -37,15 +37,15 @@ impl AbsLexer for Lexer<'_> {
     fn consume(&mut self) -> Option<Token> {
         match self.lex() {
             RosaRes::Good(tok) => Some(tok),
-            RosaRes::Recovered(tok, errs) => {
-                for err in errs {
-                    err.emit();
+            RosaRes::Recovered(tok, diags) => {
+                for diag in diags {
+                    self.dcx().emit_diag(diag)
                 }
 
                 Some(tok)
             }
-            RosaRes::Unrecovered(err) => {
-                err.emit();
+            RosaRes::Unrecovered(diag) => {
+                self.dcx().emit_diag(diag);
                 None
             }
         }
@@ -86,7 +86,7 @@ impl<'r> BufferedLexer<'r> {
         Self::with_capacity(lexer, BUFFERED_LEXER_DEFAULT_CAPACITY)
     }
 
-    pub fn pre_lex(&mut self, amount: usize) -> Vec<DiagInner> {
+    pub fn pre_lex(&mut self, amount: usize) -> Vec<Diag> {
         let mut inner_diags = Vec::new();
 
         for _ in 1..=amount {
@@ -98,9 +98,9 @@ impl<'r> BufferedLexer<'r> {
                     }
                     self.buf.push(tok);
                 }
-                RosaRes::Recovered(tok, errs) => {
-                    for err in errs {
-                        inner_diags.push(err.diag);
+                RosaRes::Recovered(tok, diags) => {
+                    for diag in diags {
+                        inner_diags.push(diag);
                     }
 
                     if tok.tt == TokenType::EOF {
@@ -109,8 +109,8 @@ impl<'r> BufferedLexer<'r> {
                     }
                     self.buf.push(tok);
                 }
-                RosaRes::Unrecovered(err) => {
-                    inner_diags.push(err.diag);
+                RosaRes::Unrecovered(diag) => {
+                    inner_diags.push(diag);
                 }
             }
         }
@@ -146,8 +146,8 @@ impl<'r> AbsLexer for BufferedLexer<'r> {
         if idx + 1 > self.buf.len() {
             // the amount needed to pre lex
             let amount = idx - self.buf.len() + 1;
-            for inner in self.pre_lex(amount) {
-                Diag::from_inner(inner, self.inner.dcx).emit();
+            for diag in self.pre_lex(amount) {
+                self.dcx().emit_diag(diag);
             }
         }
 

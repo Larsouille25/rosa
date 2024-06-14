@@ -58,39 +58,15 @@ impl Level {
     }
 }
 
-#[derive(Clone)]
-pub struct Diag<'r> {
-    pub dcx: &'r DiagCtxt<'r>,
-    pub diag: DiagInner,
-}
-
-impl<'r> Diag<'r> {
-    pub fn emit(self) {
-        self.dcx.emit_diag(self)
-    }
-
-    pub fn format(&self, s: &mut StandardStream) -> io::Result<()> {
-        self.diag.format(self.dcx, s)
-    }
-
-    /// Creates a new [Diag] from a [DiagInner]
-    ///
-    /// [Diag]: crate::Diag
-    /// [DiagInner]: crate::DiagInner
-    pub fn from_inner(inner: DiagInner, dcx: &'r DiagCtxt<'r>) -> Diag<'r> {
-        Self { dcx, diag: inner }
-    }
-}
-
 /// `Diag` for `Diagnostic`
 #[derive(Clone, Debug)]
-pub struct DiagInner {
+pub struct Diag {
     level: Level,
     msg: DiagMessage,
     span: MultiSpan,
 }
 
-impl DiagInner {
+impl Diag {
     pub fn format(&self, dcx: &DiagCtxt, s: &mut StandardStream) -> io::Result<()> {
         let prim_pos = self.primary_line_pos(dcx);
         let LineCol { line, col } = prim_pos[0].start;
@@ -249,7 +225,7 @@ pub struct DiagCtxt<'r> {
     filetext: &'r str,
     filepath: &'r Path,
 
-    diags: RefCell<Vec<DiagInner>>,
+    diags: RefCell<Vec<Diag>>,
 }
 
 impl<'r> DiagCtxt<'r> {
@@ -266,22 +242,19 @@ impl<'r> DiagCtxt<'r> {
         level: Level,
         msg: impl Into<DiagMessage>,
         primary_spans: Vec<Span>,
-    ) -> Diag<'r> {
+    ) -> Diag {
         Diag {
-            dcx: self,
-            diag: DiagInner {
-                level,
-                msg: msg.into(),
-                span: MultiSpan::from_spans(primary_spans),
-            },
+            level,
+            msg: msg.into(),
+            span: MultiSpan::from_spans(primary_spans),
         }
     }
 
-    pub fn struct_err(&'r self, msg: impl Into<DiagMessage>, primary_span: Span) -> Diag<'r> {
+    pub fn struct_err(&'r self, msg: impl Into<DiagMessage>, primary_span: Span) -> Diag {
         self.struct_spans_err(msg, vec![primary_span])
     }
 
-    pub fn struct_warn(&'r self, msg: impl Into<DiagMessage>, primary_span: Span) -> Diag<'r> {
+    pub fn struct_warn(&'r self, msg: impl Into<DiagMessage>, primary_span: Span) -> Diag {
         self.struct_spans_warn(msg, vec![primary_span])
     }
 
@@ -289,7 +262,7 @@ impl<'r> DiagCtxt<'r> {
         &'r self,
         msg: impl Into<DiagMessage>,
         primary_spans: Vec<Span>,
-    ) -> Diag<'r> {
+    ) -> Diag {
         self.diag(Level::Error, msg, primary_spans)
     }
 
@@ -297,7 +270,7 @@ impl<'r> DiagCtxt<'r> {
         &'r self,
         msg: impl Into<DiagMessage>,
         primary_spans: Vec<Span>,
-    ) -> Diag<'r> {
+    ) -> Diag {
         self.diag(Level::Warning, msg, primary_spans)
     }
 
@@ -327,13 +300,13 @@ impl<'r> DiagCtxt<'r> {
         }
     }
 
-    pub fn emit_diag(&self, diag: Diag<'r>) {
-        self.diags.borrow_mut().push(diag.diag);
+    pub fn emit_diag(&self, diag: Diag) {
+        self.diags.borrow_mut().push(diag);
     }
 
-    pub fn emit_diags<'r2>(&self, diags: impl IntoIterator<Item = Diag<'r2>>) {
+    pub fn emit_diags(&self, diags: impl IntoIterator<Item = Diag>) {
         for diag in diags {
-            diag.emit();
+            self.emit_diag(diag);
         }
     }
 
