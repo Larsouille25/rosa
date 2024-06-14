@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{fmt::Display, fmt::Write, marker::PhantomData};
 
-use rosa_errors::{Diag, DiagCtxt, RosaRes};
+use rosa_errors::{Diag, DiagCtxt, DiagInner, RosaRes};
 use rosac_lexer::{
     abs::{AbsLexer, BufferedLexer},
     tokens::{Keyword, Punctuation, Token},
@@ -138,6 +138,25 @@ macro_rules! expect_token {
             );
         })
     )
+}
+
+#[macro_export]
+macro_rules! parse {
+    ($parser:expr => $node:ty) => {
+        match <$node as $crate::AstNode>::parse($parser) {
+            RosaRes::Good(ast) => ast,
+            RosaRes::Recovered(ast, errs) => {
+                let errs = errs.clone();
+                // for some obscur borrow checker reason we cannot use the
+                // `emit_diags` method we are constrained to do it manually
+                for err in errs {
+                    err.emit();
+                }
+                ast
+            }
+            RosaRes::Unrecovered(err) => return RosaRes::Unrecovered(err),
+        }
+    };
 }
 
 pub fn expected_tok_msg<const N: usize>(

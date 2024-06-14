@@ -58,6 +58,7 @@ impl Level {
     }
 }
 
+#[derive(Clone)]
 pub struct Diag<'r> {
     pub dcx: &'r DiagCtxt<'r>,
     pub diag: DiagInner,

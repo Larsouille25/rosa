@@ -5,24 +5,93 @@ use rosa_errors::{
 };
 use rosac_lexer::{
     abs::AbsLexer,
-    tokens::{Token, TokenType::*},
+    tokens::{Punctuation, Token, TokenType::*},
 };
 
-use crate::{expect_token, expected_tok_msg, AstNode, FmtToken, Parser};
+use crate::{expect_token, expected_tok_msg, parse, AstNode, FmtToken, Parser};
 
-#[derive(Debug)]
+/// Binary Operators
+pub enum BinaryOp {
+    /// Multiplication
+    Mul,
+    /// Division
+    Div,
+    /// Remainder
+    Rem,
+    /// Addition
+    Add,
+    /// Substraction
+    Sub,
+    /// Right shift
+    RShift,
+    /// Left shift
+    LShift,
+    /// Comparison Less Than
+    CompLT,
+    /// Comparison Greater Than
+    CompGT,
+    /// Comparison Less Than or Equal
+    CompLTE,
+    /// Comparison Greater Than or Equal
+    CompGTE,
+    /// Comparison Equal
+    CompEq,
+    /// Comparison Not Equal
+    CompNe,
+}
+
+impl BinaryOp {
+    pub fn from_punct(punct: Punctuation) -> Option<BinaryOp> {
+        use BinaryOp as BOp;
+        use Punctuation as Punct;
+        Some(match punct {
+            Punct::Asterisk => BOp::Mul,
+            Punct::Slash => BOp::Div,
+            Punct::Percent => BOp::Rem,
+            Punct::Plus => BOp::Add,
+            Punct::Minus => BOp::Sub,
+            Punct::RArrow2 => BOp::RShift,
+            Punct::LArrow2 => BOp::LShift,
+            Punct::LArrow => BOp::CompLT,
+            Punct::RArrow => BOp::CompGT,
+            Punct::LArrowEqual => BOp::CompLTE,
+            Punct::RArrowEqual => BOp::CompGTE,
+            Punct::Equal2 => BOp::CompEq,
+            Punct::ExclamationmarkEqual => BOp::CompNe,
+            _ => return None,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Expression {
     pub expr: ExpressionInner,
     pub loc: Span,
 }
 
-#[derive(Debug)]
+impl AstNode for Expression {
+    type Output = Self;
+
+    fn parse<'r, L: AbsLexer>(parser: &'r mut Parser<'_, L>) -> RosaRes<Self::Output, Diag<'r>> {
+        let lhs = parse!(parser => ExpressionInner);
+
+        let mut binary_times: u8 = 0;
+        loop {
+            lhs = match parser.peek_tok().tt {
+                _ => break,
+            }
+        }
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum ExpressionInner {
     IntLiteral(u64),
 }
 
-impl AstNode for Expression {
-    type Output = Self;
+impl AstNode for ExpressionInner {
+    type Output = Expression;
 
     fn parse<'a, L: AbsLexer>(parser: &'a mut Parser<'_, L>) -> RosaRes<Self::Output, Diag<'a>> {
         match parser.peek_tok() {
