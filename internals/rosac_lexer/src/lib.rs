@@ -399,6 +399,8 @@ mod tests {
         let text = u128::MAX.to_string();
         let dcx = DiagCtxt::new(&text, unit_test_path!());
         let mut lexer = Lexer::new(unit_test_path!(), &text, &dcx);
+        // Should panic because we unwrap an RosaRes::Unrecovered due to the
+        // source code containing a number too large to fit in the int literal
         lexer.lex().unwrap();
     }
 }
