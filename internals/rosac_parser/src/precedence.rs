@@ -3,15 +3,18 @@ use std::collections::HashMap;
 use crate::expr::{Associativity, Operator};
 use lazy_static::lazy_static;
 
+pub type PrecedenceValue = u16;
+
 lazy_static! {
-    pub static ref PRECEDENCE_TABLE: HashMap<Operator, (Associativity, u16)> = {
+    pub static ref PRECEDENCE_TABLE: HashMap<Operator, (Associativity, PrecedenceValue)> = {
         use crate::expr::BinaryOp::*;
+        use crate::expr::UnaryOp::*;
         use Associativity::*;
         use Operator::*;
 
         HashMap::from([
-            // (Unary(Negation), (RightToLeft, 8)),
-            // (Unary(Not), (RightToLeft, 8)),
+            (Unary(Negation), (RightToLeft, 8)),
+            (Unary(Not), (RightToLeft, 8)),
             //
             (Binary(Mul), (LeftToRight, 7)),
             (Binary(Div), (LeftToRight, 7)),
@@ -34,7 +37,7 @@ lazy_static! {
     };
 }
 
-pub fn operator_precedence(key: impl Into<Operator>) -> (Associativity, u16) {
+pub fn operator_precedence(key: impl Into<Operator>) -> (Associativity, PrecedenceValue) {
     let op = key.into();
     PRECEDENCE_TABLE.get(&op).cloned().expect(&format!(
         "The operator `{:?}` is not in the precedence table.",

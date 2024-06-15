@@ -4,6 +4,7 @@ use std::{
     marker::PhantomData,
 };
 
+use precedence::PrecedenceValue;
 use rosa_errors::{Diag, DiagCtxt, RosaRes};
 use rosac_lexer::{
     abs::{AbsLexer, BufferedLexer},
@@ -16,8 +17,11 @@ pub mod expr;
 pub mod precedence;
 
 pub struct Parser<'r, L: AbsLexer = BufferedLexer<'r>> {
+    /// the underlying lexer
     lexer: L,
-    // used to be able to make the L type default to BufferedLexer.
+    /// the actual precedence value when parsing expressions
+    current_precedence: PrecedenceValue,
+    /// used to be able to make the L type default to BufferedLexer.
     _marker: PhantomData<&'r ()>,
 }
 
@@ -28,6 +32,7 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
     pub fn new(lexer: L) -> Parser<'r, L> {
         Parser {
             lexer,
+            current_precedence: 0,
             _marker: PhantomData,
         }
     }
@@ -55,10 +60,6 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
 
     pub fn begin_parsing(&mut self) -> RosaRes<TopLevelAst, Diag> {
         TopLevelAst::parse(self)
-    }
-
-    pub fn default_precedence(&self) -> u16 {
-        0
     }
 }
 
@@ -109,6 +110,7 @@ pub enum AstNodes {
     FunctionDef,
     Definition,
     ImportDecl,
+    UnaryOperator,
 }
 
 impl Display for AstNodes {
@@ -119,6 +121,7 @@ impl Display for AstNodes {
             Self::FunctionDef => write!(f, "function definition"),
             Self::Definition => write!(f, "definition"),
             Self::ImportDecl => write!(f, "import declaration"),
+            Self::UnaryOperator => write!(f, "unary operator"),
         }
     }
 }
@@ -126,7 +129,7 @@ impl Display for AstNodes {
 #[macro_export]
 macro_rules! expect_token {
     ($parser:expr => [ $($token:pat, $result:expr);* ] else $unexpected:block) => (
-        match $parser.peek_tok().tt {
+        match &$parser.peek_tok().tt {
             $(
                 $token => {
                     ($result, $parser.consume_tok().unwrap().loc)

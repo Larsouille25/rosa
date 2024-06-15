@@ -12,15 +12,16 @@ use rosac_lexer::{
 };
 
 use crate::{
-    expect_token, expected_tok_msg, parse, precedence::operator_precedence, AstNode, FmtToken,
-    Parser,
+    expect_token, expected_tok_msg, parse,
+    precedence::{operator_precedence, PrecedenceValue},
+    AstNode, AstNodes, FmtToken, Parser,
 };
 
 /// An operator, either a binary operator or a unary operator.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Operator {
     Binary(BinaryOp),
-    // Unary(UnaryOp),
+    Unary(UnaryOp),
 }
 
 impl From<BinaryOp> for Operator {
@@ -29,11 +30,11 @@ impl From<BinaryOp> for Operator {
     }
 }
 
-// impl From<UnaryOp> for Operator {
-//     fn from(value: UnaryOp) -> Self {
-//         Self::Unary(value)
-//     }
-// }
+impl From<UnaryOp> for Operator {
+    fn from(value: UnaryOp) -> Self {
+        Self::Unary(value)
+    }
+}
 
 /// Binary Operators
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -89,6 +90,42 @@ impl BinaryOp {
     }
 }
 
+/// Unary Operators
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum UnaryOp {
+    // LEFT UNARY OPERATOR
+    /// -a
+    Negation,
+    /// !a
+    Not,
+    //
+    // RIGHT UNARY OPERATOR
+    // /// a.?
+    // Unwrap,
+}
+
+impl UnaryOp {
+    pub fn from_punct(punct: Punctuation) -> Option<UnaryOp> {
+        use Punctuation as Punct;
+        use UnaryOp as UOp;
+        Some(match punct {
+            Punct::Minus => UOp::Negation,
+            Punct::Exclamationmark => UOp::Not,
+            _ => return None,
+        })
+    }
+
+    /// Is the unary operator on the left of the operand
+    pub fn is_left(&self) -> bool {
+        matches!(self, Self::Negation | Self::Not)
+    }
+
+    /// Is the unary operator on the right of the operand
+    pub fn is_right(&self) -> bool {
+        !self.is_left()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Associativity {
     LeftToRight,
@@ -114,7 +151,7 @@ impl AstNode for Expression {
                     if BinaryOp::from_punct(p.clone()).is_some() && binary_times != 1 =>
                 {
                     binary_times += 1;
-                    parse!(fn; parser => parse_binary_expr, parser.default_precedence(), lhs)
+                    parse!(fn; parser => parse_binary_expr, parser.current_precedence, lhs)
                 }
                 _ => break,
             };
@@ -134,6 +171,10 @@ pub enum ExpressionInner {
         op: BinaryOp,
         rhs: Box<Expression>,
     },
+    UnaryExpr {
+        op: UnaryOp,
+        operand: Box<Expression>,
+    },
 
     // primary expression
     IntLiteral(u64),
@@ -145,6 +186,11 @@ impl AstNode for ExpressionInner {
     fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> RosaRes<Self::Output, Diag> {
         match parser.peek_tok() {
             Token { tt: Int(_), .. } => parse_intlit_expr(parser),
+            Token {
+                tt: Punct(punct), ..
+            } if UnaryOp::from_punct(punct.clone()).is_some_and(|op| op.is_left()) => {
+                parse_left_unary_expr(parser)
+            }
             t => {
                 let t = t.clone();
                 Unrecovered(
@@ -158,7 +204,7 @@ impl AstNode for ExpressionInner {
 }
 
 pub fn parse_intlit_expr(parser: &mut Parser<'_, impl AbsLexer>) -> RosaRes<Expression, Diag> {
-    let (i, loc) = expect_token!(parser => [Int(i), i], [FmtToken::IntLiteral]);
+    let (i, loc) = expect_token!(parser => [Int(i), *i], [FmtToken::IntLiteral]);
     Good(Expression {
         expr: ExpressionInner::IntLiteral(i),
         loc,
@@ -167,11 +213,9 @@ pub fn parse_intlit_expr(parser: &mut Parser<'_, impl AbsLexer>) -> RosaRes<Expr
 
 pub fn parse_binary_expr(
     parser: &mut Parser<'_, impl AbsLexer>,
-    min_precedence: u16,
+    min_precedence: PrecedenceValue,
     mut lhs: Expression,
 ) -> RosaRes<Expression, Diag> {
-    dbg!(&min_precedence, &lhs, &parser.peek_tok());
-
     while let TokenType::Punct(punct) = &parser.peek_tok().tt {
         // check if the punctuation is a binary operator
         let op = match BinaryOp::from_punct(punct.clone()) {
@@ -227,4 +271,28 @@ pub fn parse_binary_expr(
     }
 
     Good(lhs)
+}
+
+pub fn parse_left_unary_expr(parser: &mut Parser<'_, impl AbsLexer>) -> RosaRes<Expression, Diag> {
+    let (punct, lhs) =
+        expect_token!(parser => [Punct(punct), punct.clone()], [AstNodes::UnaryOperator]);
+
+    let op = match UnaryOp::from_punct(punct.clone()) {
+        Some(v) if v.is_left() => v,
+        _ => {
+            return Unrecovered(
+                parser
+                    .dcx()
+                    .struct_err(expected_tok_msg(punct, ["left unary operator"]), lhs),
+            )
+        }
+    };
+
+    parser.current_precedence = operator_precedence(op.clone()).1;
+    let operand = Box::new(parse!(parser => Expression));
+
+    Good(Expression {
+        loc: Span::from_ends(lhs, operand.loc.clone()),
+        expr: ExpressionInner::UnaryExpr { op, operand },
+    })
 }
