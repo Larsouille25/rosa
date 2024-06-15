@@ -9,6 +9,6 @@ docopen:
 WATCHENV := RUST_BACKTRACE=1
 
 watch:
-	cargo watch -s "clear && $(WATCHENV) cargo run $(path)" --no-vcs-ignores
+	cargo watch -s "clear && $(WATCHENV) cargo run --bin $(who) $(path)" --no-vcs-ignores
 
 .PHONY: doc docopen

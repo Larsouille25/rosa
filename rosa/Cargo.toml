@@ -1,0 +1,10 @@
+[package]
+name = "rosa"
+description = "The Virtual Machine used to execute Rosa's ByteCode."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+lazy_static.workspace = true

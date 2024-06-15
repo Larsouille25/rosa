@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "rosa",
   "rosac",
   "internals/rosa_errors",
   "internals/rosac_lexer",
