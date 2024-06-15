@@ -1,8 +1,5 @@
 use rosa_comm::Span;
-use rosa_errors::{
-    Diag,
-    RosaRes::{self, *},
-};
+use rosa_errors::{Diag, Fuzzy};
 use rosac_lexer::{
     abs::AbsLexer,
     tokens::{
@@ -141,7 +138,7 @@ pub struct Expression {
 impl AstNode for Expression {
     type Output = Self;
 
-    fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> RosaRes<Self::Output, Diag> {
+    fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> Fuzzy<Self::Output, Diag> {
         let mut lhs = parse!(parser => ExpressionInner);
 
         let mut binary_times: u8 = 0;
@@ -160,7 +157,7 @@ impl AstNode for Expression {
             }
         }
 
-        Good(lhs)
+        Fuzzy::Ok(lhs)
     }
 }
 
@@ -183,7 +180,7 @@ pub enum ExpressionInner {
 impl AstNode for ExpressionInner {
     type Output = Expression;
 
-    fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> RosaRes<Self::Output, Diag> {
+    fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> Fuzzy<Self::Output, Diag> {
         match parser.peek_tok() {
             Token { tt: Int(_), .. } => parse_intlit_expr(parser),
             Token {
@@ -193,7 +190,7 @@ impl AstNode for ExpressionInner {
             }
             t => {
                 let t = t.clone();
-                Unrecovered(
+                Fuzzy::Err(
                     parser
                         .dcx()
                         .struct_err(expected_tok_msg(t.tt, [FmtToken::IntLiteral]), t.loc),
@@ -203,9 +200,9 @@ impl AstNode for ExpressionInner {
     }
 }
 
-pub fn parse_intlit_expr(parser: &mut Parser<'_, impl AbsLexer>) -> RosaRes<Expression, Diag> {
+pub fn parse_intlit_expr(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Expression, Diag> {
     let (i, loc) = expect_token!(parser => [Int(i), *i], [FmtToken::IntLiteral]);
-    Good(Expression {
+    Fuzzy::Ok(Expression {
         expr: ExpressionInner::IntLiteral(i),
         loc,
     })
@@ -215,7 +212,7 @@ pub fn parse_binary_expr(
     parser: &mut Parser<'_, impl AbsLexer>,
     min_precedence: PrecedenceValue,
     mut lhs: Expression,
-) -> RosaRes<Expression, Diag> {
+) -> Fuzzy<Expression, Diag> {
     while let TokenType::Punct(punct) = &parser.peek_tok().tt {
         // check if the punctuation is a binary operator
         let op = match BinaryOp::from_punct(punct.clone()) {
@@ -270,17 +267,17 @@ pub fn parse_binary_expr(
         };
     }
 
-    Good(lhs)
+    Fuzzy::Ok(lhs)
 }
 
-pub fn parse_left_unary_expr(parser: &mut Parser<'_, impl AbsLexer>) -> RosaRes<Expression, Diag> {
+pub fn parse_left_unary_expr(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Expression, Diag> {
     let (punct, lhs) =
         expect_token!(parser => [Punct(punct), punct.clone()], [AstNodes::UnaryOperator]);
 
     let op = match UnaryOp::from_punct(punct.clone()) {
         Some(v) if v.is_left() => v,
         _ => {
-            return Unrecovered(
+            return Fuzzy::Err(
                 parser
                     .dcx()
                     .struct_err(expected_tok_msg(punct, ["left unary operator"]), lhs),
@@ -291,7 +288,7 @@ pub fn parse_left_unary_expr(parser: &mut Parser<'_, impl AbsLexer>) -> RosaRes<
     parser.current_precedence = operator_precedence(op.clone()).1;
     let operand = Box::new(parse!(parser => Expression));
 
-    Good(Expression {
+    Fuzzy::Ok(Expression {
         loc: Span::from_ends(lhs, operand.loc.clone()),
         expr: ExpressionInner::UnaryExpr { op, operand },
     })

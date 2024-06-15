@@ -1,5 +1,5 @@
 //! Abstraction over the lexer to allow easy testing without performance overhead.
-use rosa_errors::{Diag, DiagCtxt, RosaRes};
+use rosa_errors::{Diag, DiagCtxt, Fuzzy};
 
 use crate::{
     tokens::{Token, TokenType},
@@ -36,15 +36,15 @@ pub trait AbsLexer {
 impl AbsLexer for Lexer<'_> {
     fn consume(&mut self) -> Option<Token> {
         match self.lex() {
-            RosaRes::Good(tok) => Some(tok),
-            RosaRes::Recovered(tok, diags) => {
+            Fuzzy::Ok(tok) => Some(tok),
+            Fuzzy::Fuzzy(tok, diags) => {
                 for diag in diags {
                     self.dcx().emit_diag(diag)
                 }
 
                 Some(tok)
             }
-            RosaRes::Unrecovered(diag) => {
+            Fuzzy::Err(diag) => {
                 self.dcx().emit_diag(diag);
                 None
             }
@@ -91,14 +91,14 @@ impl<'r> BufferedLexer<'r> {
 
         for _ in 1..=amount {
             match self.inner.lex() {
-                RosaRes::Good(tok) => {
+                Fuzzy::Ok(tok) => {
                     if tok.tt == TokenType::EOF {
                         self.buf.push(tok);
                         break;
                     }
                     self.buf.push(tok);
                 }
-                RosaRes::Recovered(tok, diags) => {
+                Fuzzy::Fuzzy(tok, diags) => {
                     for diag in diags {
                         inner_diags.push(diag);
                     }
@@ -109,7 +109,7 @@ impl<'r> BufferedLexer<'r> {
                     }
                     self.buf.push(tok);
                 }
-                RosaRes::Unrecovered(diag) => {
+                Fuzzy::Err(diag) => {
                     inner_diags.push(diag);
                 }
             }

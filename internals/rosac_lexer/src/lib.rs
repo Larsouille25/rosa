@@ -8,11 +8,8 @@ use crate::tokens::{Token, TokenType};
 use crate::tokens::TokenType::*;
 use crate::tokens::{Keyword, Punctuation};
 use rosa_comm::{BytePos, Span};
-use rosa_errors::DiagCtxt;
-use rosa_errors::{
-    Diag,
-    RosaRes::{self, *},
-};
+use rosa_errors::Diag;
+use rosa_errors::{DiagCtxt, Fuzzy};
 
 pub mod abs;
 pub mod literals;
@@ -142,7 +139,7 @@ impl<'r> Lexer<'r> {
             .get(self.prev_idx.0 as usize..self.prev_idx.0 as usize + size)
     }
 
-    pub fn lex(&mut self) -> RosaRes<Token, Diag> {
+    pub fn lex(&mut self) -> Fuzzy<Token, Diag> {
         self.skip_useless_whitespace();
 
         self.prev_idx = self.idx;
@@ -172,13 +169,13 @@ impl<'r> Lexer<'r> {
                     let err = self
                         .dcx
                         .struct_err(format!("unknown start of token {c:?}"), self.current_span());
-                    return Unrecovered(err);
+                    return Fuzzy::Err(err);
                 }
                 None => EOF,
             }
         };
 
-        Good(Token {
+        Fuzzy::Ok(Token {
             tt,
             loc: self.current_span(),
         })
@@ -205,7 +202,7 @@ impl<'r> Lexer<'r> {
         (word, numeric)
     }
 
-    pub(crate) fn lex_word(&mut self, c: char) -> RosaRes<Token, Diag> {
+    pub(crate) fn lex_word(&mut self, c: char) -> Fuzzy<Token, Diag> {
         let (word, numeric) = self.make_word(c);
 
         let tt = if numeric {
@@ -214,7 +211,7 @@ impl<'r> Lexer<'r> {
             self.lex_keyword(word)
         };
 
-        Good(Token {
+        Fuzzy::Ok(Token {
             tt,
             loc: self.current_span(),
         })
@@ -399,7 +396,7 @@ mod tests {
         let text = u128::MAX.to_string();
         let dcx = DiagCtxt::new(&text, unit_test_path!());
         let mut lexer = Lexer::new(unit_test_path!(), &text, &dcx);
-        // Should panic because we unwrap an RosaRes::Unrecovered due to the
+        // Should panic because we unwrap an Fuzzy::Err due to the
         // source code containing a number too large to fit in the int literal
         lexer.lex().unwrap();
     }

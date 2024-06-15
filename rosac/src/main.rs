@@ -2,7 +2,7 @@ use std::{env, fs::read_to_string, path::PathBuf};
 
 use termcolor::{ColorChoice, StandardStream};
 
-use rosa_errors::{DiagCtxt, RosaRes};
+use rosa_errors::{DiagCtxt, Fuzzy};
 use rosac_lexer::{abs::BufferedLexer, Lexer};
 
 use rosac_parser::Parser;
@@ -23,14 +23,14 @@ fn main() {
     let mut parser = Parser::new(buf_lexer);
 
     match parser.begin_parsing() {
-        RosaRes::Good(ast) => {
+        Fuzzy::Ok(ast) => {
             dbg!(ast);
         }
-        RosaRes::Recovered(ast, diags) => {
+        Fuzzy::Fuzzy(ast, diags) => {
             dcx.emit_diags(diags);
             dbg!(ast);
         }
-        RosaRes::Unrecovered(diag) => dcx.emit_diag(diag),
+        Fuzzy::Err(diag) => dcx.emit_diag(diag),
     }
 
     dcx.render_all(&mut s);

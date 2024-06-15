@@ -2,37 +2,35 @@
 //! like integer, float, string and char literals
 
 use rosa_comm::Span;
-use rosa_errors::{Diag, RosaRes};
+use rosa_errors::{Diag, Fuzzy};
 
 use crate::tokens::{Token, TokenType};
 
 impl<'r> super::Lexer<'r> {
-    pub(crate) fn lex_int(&mut self, num: String) -> RosaRes<Token, Diag> {
+    pub(crate) fn lex_int(&mut self, num: String) -> Fuzzy<Token, Diag> {
         match parse_u64(&num, 10) {
-            Ok(lit) => RosaRes::Good(Token {
+            Ok(lit) => Fuzzy::Ok(Token {
                 tt: TokenType::Int(lit),
                 loc: self.current_span(),
             }),
-            Err(ParseUIntError::IntegerOverflow) => RosaRes::Unrecovered(
+            Err(ParseUIntError::IntegerOverflow) => Fuzzy::Err(
                 self.dcx
                     .struct_err("integer literal is too large", self.current_span()),
             ),
-            Err(ParseUIntError::DigitOutOfRange(loc)) => RosaRes::Unrecovered(self.dcx.struct_err(
+            Err(ParseUIntError::DigitOutOfRange(loc)) => Fuzzy::Err(self.dcx.struct_err(
                 format!(
                     "digit out of radix {:?}",
                     &num[loc.clone().range_usize()].chars().next().unwrap()
                 ),
                 loc.offset(self.prev_idx),
             )),
-            Err(ParseUIntError::InvalidCharacter(loc)) => {
-                RosaRes::Unrecovered(self.dcx.struct_err(
-                    format!(
-                        "invalid character in literal, {:?}",
-                        &num[loc.clone().range_usize()].chars().next().unwrap()
-                    ),
-                    loc.offset(self.prev_idx),
-                ))
-            }
+            Err(ParseUIntError::InvalidCharacter(loc)) => Fuzzy::Err(self.dcx.struct_err(
+                format!(
+                    "invalid character in literal, {:?}",
+                    &num[loc.clone().range_usize()].chars().next().unwrap()
+                ),
+                loc.offset(self.prev_idx),
+            )),
             Err(ParseUIntError::InvalidRadix) => unreachable!(),
         }
     }

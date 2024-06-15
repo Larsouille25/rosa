@@ -348,37 +348,47 @@ impl<'r> DiagCtxt<'r> {
 /// Like Result in the standard library, but here their is a case where we can
 /// still compute the result even if at some point it failed.
 #[derive(Clone, Debug)]
-pub enum RosaRes<T, E, Es = Vec<E>> {
-    Good(T),
-    Recovered(T, Es),
-    Unrecovered(E),
+pub enum Fuzzy<T, E, Es = Vec<E>> {
+    Ok(T),
+    Fuzzy(T, Es),
+    Err(E),
 }
 
-impl<T, E, Es> RosaRes<T, E, Es> {
+impl<T, E, Es> Fuzzy<T, E, Es> {
+    /// Unwrap the `T` value.
+    ///
+    /// Panics if not `Fuzzy::Ok(..)`.
     pub fn unwrap(self) -> T {
         match self {
-            Self::Good(ok) => ok,
-            Self::Recovered(..) => panic!("Called `RosaRes::unwrap()` on a `Recovered` value"),
-            Self::Unrecovered(..) => panic!("Called `RosaRes::unwrap()` on a `Unrecovered` value"),
+            Self::Ok(ok) => ok,
+            Self::Fuzzy(..) => panic!("Called `Fuzzy::unwrap()` on a `Fuzzy` value"),
+            Self::Err(..) => panic!("Called `Fuzzy::unwrap()` on a `Err` value"),
         }
     }
 
-    pub fn unwrap_unrecovered(self) -> E {
+    /// Unwrap the `E` value.
+    ///
+    /// Panics if not `Fuzzy::Err(..)`.
+    pub fn unwrap_err(self) -> E {
         match self {
-            Self::Good(..) => panic!("Called `RosaRes::unwrap_unrecovered()` on a `Good` value"),
-            Self::Recovered(..) => {
-                panic!("Called `RosaRes::unwrap_unrecovered()` on a `Recovered` value")
+            Self::Ok(..) => panic!("Called `Fuzzy::unwrap_err()` on a `Ok` value"),
+            Self::Fuzzy(..) => {
+                panic!("Called `Fuzzy::unwrap_err()` on a `Fuzzy` value")
             }
-            Self::Unrecovered(err) => err,
+            Self::Err(err) => err,
         }
     }
 
-    pub fn unwrap_good(self) -> (T, Option<Es>) {
+    /// Unwrap the `T` value, along with an optional list of errors (due to the
+    /// Fuzzy variant that may contain errors)
+    ///
+    /// Panics if `Fuzzy::Err(..)`
+    pub fn unwrap_working(self) -> (T, Option<Es>) {
         match self {
-            Self::Good(ok) => (ok, None),
-            Self::Recovered(ok, errs) => (ok, Some(errs)),
-            Self::Unrecovered(..) => {
-                panic!("Called `RosaRes::unwrap_good()` on a `Unrecovered` value")
+            Self::Ok(ok) => (ok, None),
+            Self::Fuzzy(ok, errs) => (ok, Some(errs)),
+            Self::Err(..) => {
+                panic!("Called `Fuzzy::unwrap_working()` on a `Err` value")
             }
         }
     }

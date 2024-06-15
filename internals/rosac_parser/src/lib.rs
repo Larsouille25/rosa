@@ -5,7 +5,7 @@ use std::{
 };
 
 use precedence::PrecedenceValue;
-use rosa_errors::{Diag, DiagCtxt, RosaRes};
+use rosa_errors::{Diag, DiagCtxt, Fuzzy};
 use rosac_lexer::{
     abs::{AbsLexer, BufferedLexer},
     tokens::{Keyword, Punctuation, Token},
@@ -58,7 +58,7 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
             .expect("Tried to peek a token after consuming the end of file token.")
     }
 
-    pub fn begin_parsing(&mut self) -> RosaRes<TopLevelAst, Diag> {
+    pub fn begin_parsing(&mut self) -> Fuzzy<TopLevelAst, Diag> {
         TopLevelAst::parse(self)
     }
 }
@@ -66,7 +66,7 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
 pub trait AstNode: fmt::Debug {
     type Output;
 
-    fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> RosaRes<Self::Output, Diag>;
+    fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> Fuzzy<Self::Output, Diag>;
 }
 
 pub enum FmtToken {
@@ -142,7 +142,7 @@ macro_rules! expect_token {
     ($parser:expr => [ $($token:pat, $result:expr);* ], $expected:expr) => (
         $crate::expect_token!($parser => [ $($token, $result)* ] else {
             let found = $parser.peek_tok().clone();
-            return RosaRes::Unrecovered(
+            return Fuzzy::Err(
                 $parser
                     .dcx()
                     .struct_err($crate::expected_tok_msg(found.tt, $expected), found.loc)
@@ -158,8 +158,8 @@ macro_rules! parse {
     };
     (fn; $parser:expr => $parsing_fn:expr $(, $arg:expr)*) => (
         match $parsing_fn($parser $(, $arg)*) {
-            RosaRes::Good(ast) => ast,
-            RosaRes::Recovered(ast, diags) => {
+            Fuzzy::Ok(ast) => ast,
+            Fuzzy::Fuzzy(ast, diags) => {
                 // for some obscur borrow checker reason we cannot use the
                 // `emit_diags` method we are constrained to do it manually
                 for diag in diags {
@@ -167,7 +167,7 @@ macro_rules! parse {
                 }
                 ast
             }
-            RosaRes::Unrecovered(err) => return RosaRes::Unrecovered(err),
+            Fuzzy::Err(err) => return Fuzzy::Err(err),
         }
     )
 }
