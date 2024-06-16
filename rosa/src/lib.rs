@@ -1,3 +1,11 @@
+use std::{
+    fmt::Display,
+    io::{self, Write},
+};
+
+use lazy_static::lazy_static;
+use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
+
 pub mod inst;
 
 /// A chunk of Rosa ByteCode.
@@ -13,16 +21,79 @@ impl From<Vec<u8>> for Chunk {
 }
 
 impl Chunk {
-    pub fn get(&self, i: usize) -> u8 {
-        self.try_get(i).unwrap()
-    }
-
-    pub fn try_get(&self, i: usize) -> Option<u8> {
+    pub fn get(&self, i: usize) -> Option<u8> {
         self.data.get(i).copied()
     }
 }
 
-// TODO: Make better error handling, with a custom RuntimError type etc..
+pub type Result<T> = std::result::Result<T, RuntimeError>;
+
+lazy_static! {
+    static ref WHITE_BOLD: ColorSpec = {
+        let mut color = ColorSpec::new();
+        color.set_fg(Some(Color::White));
+        color.set_bold(true);
+        color
+    };
+    static ref RED_BOLD: ColorSpec = {
+        let mut color = ColorSpec::new();
+        color.set_fg(Some(Color::Red));
+        color.set_bold(true);
+        color
+    };
+}
+
+#[derive(Clone, Debug)]
+pub enum RuntimeError {
+    /// Stack over flow
+    OverFlow,
+    /// Stack under flow
+    UnderFlow,
+    /// Unknown instruction
+    UnknownInst { inst: u8 },
+    /// IP tried to get an instruction out of the boundaries of the Chunk
+    ProgramOverFlow,
+}
+
+impl Display for RuntimeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::OverFlow => write!(f, "stack over flow"),
+            Self::UnderFlow => write!(f, "stack under flow"),
+            Self::UnknownInst { inst } => write!(f, "unknown instruction {inst:#04X?}"),
+            Self::ProgramOverFlow => write!(f, "over run of the chunk bytecode"),
+        }
+    }
+}
+
+impl RuntimeError {
+    pub fn format(&self, vm: &VirtualMachine, s: &mut StandardStream) -> io::Result<()> {
+        s.set_color(&WHITE_BOLD)?;
+        write!(s, "rosa: ")?;
+        s.set_color(&RED_BOLD)?;
+        write!(s, "runtime error: ")?;
+        s.reset()?;
+        writeln!(s, "{}", self)?;
+
+        s.set_color(&WHITE_BOLD)?;
+        writeln!(s, "STACK TRACE ({}):", vm.sp)?;
+
+        let stacktrace = vm.stacktrace();
+        if stacktrace.is_empty() {
+            writeln!(s, "  ...")?;
+        }
+        s.reset()?;
+        for (i, byte) in stacktrace.iter().enumerate() {
+            writeln!(s, "  {i}: {:#04X?}", byte)?;
+        }
+
+        // TODO: format the call stack
+        s.reset()?;
+        s.flush()?;
+        Ok(())
+    }
+}
+
 /// The stack virtual machine used to execute Rosa ByteCode.
 #[derive(Debug)]
 pub struct VirtualMachine {
@@ -37,7 +108,7 @@ pub struct VirtualMachine {
     sp: usize,
     /// if `None`, then keep running.
     /// but if `Some`, stop and the value is the exit code.
-    exit_code: Option<u8>,
+    exit: Option<u8>,
 }
 
 impl VirtualMachine {
@@ -63,28 +134,32 @@ impl VirtualMachine {
             ip: 0,
             stack: vec![0; stack_size],
             sp: 0,
-            exit_code: None,
+            exit: None,
         }
     }
 
-    pub fn run(&mut self) -> u8 {
-        while self.exit_code.is_none() {
-            match inst::INSTRUCTION_SET.get(&self.read_byte()) {
+    pub fn run(&mut self) -> Result<u8> {
+        while self.exit.is_none() && !self.finished() {
+            let inst = self.read_byte()?;
+            match inst::INSTRUCTION_SET.get(&inst) {
                 Some(inst) => {
                     dbg!(inst);
-                    inst.execute(self);
+                    inst.execute(self)?;
                 }
-                None => todo!(),
+                None => return Err(RuntimeError::UnknownInst { inst }),
             }
         }
-        self.exit_code.unwrap()
+        Ok(self.exit.unwrap())
     }
 
     /// Reads the byte pointed by `ip` and advance by one the `ip` pointer.
-    pub fn read_byte(&mut self) -> u8 {
-        let byte = self.program.get(self.ip);
+    pub fn read_byte(&mut self) -> Result<u8> {
+        let byte = match self.program.get(self.ip) {
+            Some(byte) => byte,
+            None => return Err(RuntimeError::ProgramOverFlow),
+        };
         self.ip += 1;
-        byte
+        Ok(byte)
     }
 
     pub fn stack_push(&mut self, data: &[u8]) {
@@ -98,20 +173,43 @@ impl VirtualMachine {
         self.sp += size;
     }
 
-    pub fn stack_pop(&mut self, amount: impl Into<usize>) -> &[u8] {
+    pub fn stack_pop(&mut self, amount: impl Into<usize>) -> Result<&[u8]> {
         let amount = amount.into();
-        let poped = &self.stack[self.sp - amount..self.sp];
+        let frame = &self.stack.get(
+            self.sp
+                .checked_sub(amount)
+                .ok_or_else(|| RuntimeError::UnderFlow)?..self.sp,
+        );
+        let poped = match frame {
+            Some(data) => data,
+            None => return Err(RuntimeError::UnderFlow),
+        };
         self.sp -= amount;
-        poped
+        Ok(poped)
     }
 
-    pub fn stack_pop_one(&mut self) -> u8 {
-        *self.stack_pop(1usize).first().unwrap()
+    pub fn stack_pop_one(&mut self) -> Result<u8> {
+        Ok(*self.stack_pop(1usize)?.first().unwrap())
     }
 
     /// Extends the stack to contain `amount` more bytes of free space.
     pub fn extend_stack(&mut self, amount: usize) {
         self.stack.extend(vec![0; amount]);
+    }
+
+    pub fn stacktrace(&self) -> Box<[u8]> {
+        // TODO: Make the stack size configurable.
+        const TRACE_SIZE: usize = 32;
+        let amount = TRACE_SIZE.min(self.sp);
+        Box::from(self.stack.get(self.sp - amount..self.sp).unwrap())
+    }
+
+    pub fn finished(&mut self) -> bool {
+        if self.ip >= self.program.data.len() {
+            self.exit = Some(0);
+            return true;
+        }
+        false
     }
 }
 

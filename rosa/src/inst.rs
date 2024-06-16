@@ -4,7 +4,7 @@ use std::{collections::HashMap, fmt::Debug};
 
 use lazy_static::lazy_static;
 
-use crate::VirtualMachine;
+use crate::{Result, RuntimeError, VirtualMachine};
 
 /// An abstraction over what is an instruction of the Rosa VM.
 ///
@@ -12,7 +12,7 @@ use crate::VirtualMachine;
 /// Instruction needs to be sync because it is used inside a lazy_static that
 /// require it to be thread safe.
 pub trait Instruction: Sync + Debug {
-    fn execute(&self, vm: &mut VirtualMachine);
+    fn execute(&self, vm: &mut VirtualMachine) -> Result<()>;
 }
 
 #[derive(Debug)]
@@ -23,7 +23,9 @@ impl NoOpInst {
 }
 
 impl Instruction for NoOpInst {
-    fn execute(&self, _: &mut VirtualMachine) {}
+    fn execute(&self, _: &mut VirtualMachine) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -34,8 +36,9 @@ impl ExitInst {
 }
 
 impl Instruction for ExitInst {
-    fn execute(&self, vm: &mut VirtualMachine) {
-        vm.exit_code = Some(vm.stack_pop_one());
+    fn execute(&self, vm: &mut VirtualMachine) -> Result<()> {
+        vm.exit = Some(vm.stack_pop_one()?);
+        Ok(())
     }
 }
 
