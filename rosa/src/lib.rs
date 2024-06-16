@@ -213,7 +213,6 @@ impl VirtualMachine {
     }
 }
 
-// TODO: Make it to hold, ref the data.
 pub struct DynamicInt;
 
 impl DynamicInt {
@@ -239,12 +238,32 @@ impl DynamicInt {
     }
 
     pub fn encode(num: impl Into<u64>) -> Vec<u8> {
+        let number: u64 = num.into();
         // STEPS:
+
         // 1. Compute how many bytes are needed depending on the size of the number
+        let ones = ones_needed(number);
+
         // 2. Encode that size as ones in the first byte.
+        let mut encoded_ones = 2u8.pow(ones.into()) - 1;
+        if ones != 0 {
+            encoded_ones <<= 8 - ones;
+        }
+
         // 3. Encode all the remaining digits.
+        let bits_to_encode = bits_dyn_int(ones);
+        let first: u8 = encoded_ones | (number >> bits_to_encode - bits_to_encode % 8) as u8;
+        if ones == 0 {
+            return vec![first];
+        }
+        let mut result: Vec<u8> = vec![0; ones as usize + 1];
+        result[0] = first;
+
+        let num_slice = number.to_be_bytes();
+        result[1..(ones + 1).into()].copy_from_slice(&num_slice[8 - ones as usize..8]);
+
         // 4. Enjoy!
-        todo!()
+        return result;
     }
 }
 
@@ -268,6 +287,27 @@ pub fn ones_before_zero(byte: u8) -> u8 {
     ones
 }
 
+pub const fn bits_dyn_int(ones: u8) -> u8 {
+    return (8 - ones - 1) + 8 * ones;
+}
+
+pub fn size_dyn_int(ones: u8) -> u64 {
+    return 2_u64.pow(bits_dyn_int(ones).into()) - 1;
+}
+
+pub fn ones_needed(number: u64) -> u8 {
+    let mut ones: u8 = 0;
+    let mut range = 0..=size_dyn_int(ones);
+    while !range.contains(&number) {
+        if ones > 7 {
+            panic!("this number cannot fit into a dynamic integer");
+        }
+        ones += 1;
+        range = *range.end()..=size_dyn_int(ones);
+    }
+    ones
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -281,7 +321,35 @@ mod tests {
 
     #[test]
     fn dyn_int_encode() {
-        let num = 127_u8;
-        let encoded = DynamicInt::encode(num);
+        assert_eq!(DynamicInt::encode(127u16), vec![0b0111_1111]);
+        assert_eq!(
+            DynamicInt::encode(0b1010_1010_1010u16),
+            vec![0b1000_1010, 0b1010_1010]
+        );
+    }
+
+    #[test]
+    fn dyn_int_size_correct() {
+        assert_eq!(size_dyn_int(0), 127);
+        assert_eq!(size_dyn_int(1), 16_383);
+        assert_eq!(size_dyn_int(2), 2_097_151);
+        assert_eq!(size_dyn_int(3), 268_435_455);
+        assert_eq!(size_dyn_int(4), 34_359_738_367);
+        assert_eq!(size_dyn_int(5), 4_398_046_511_103);
+        assert_eq!(size_dyn_int(6), 562_949_953_421_311);
+        assert_eq!(size_dyn_int(7), 72_057_594_037_927_935);
+    }
+
+    #[test]
+    #[ignore = "It encodes and decodes all number starting from 0 up to 2,684,354. So too long."]
+    fn dyn_int_symmetry() {
+        for number in 0..size_dyn_int(3) / 100 {
+            let encoded = DynamicInt::encode(number);
+            let decoded = DynamicInt::decode(&encoded);
+            assert_eq!(
+                number,
+                decoded.expect("failed to decode the dynamic integer")
+            );
+        }
     }
 }
