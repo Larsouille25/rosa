@@ -39,8 +39,8 @@ lazy_static! {
 
 pub fn operator_precedence(key: impl Into<Operator>) -> (Associativity, PrecedenceValue) {
     let op = key.into();
-    PRECEDENCE_TABLE.get(&op).cloned().expect(&format!(
-        "The operator `{:?}` is not in the precedence table.",
-        op
-    ))
+    PRECEDENCE_TABLE
+        .get(&op)
+        .cloned()
+        .unwrap_or_else(|| panic!("The operator `{:?}` is not in the precedence table.", op))
 }

@@ -175,11 +175,9 @@ impl VirtualMachine {
 
     pub fn stack_pop(&mut self, amount: impl Into<usize>) -> Result<&[u8]> {
         let amount = amount.into();
-        let frame = &self.stack.get(
-            self.sp
-                .checked_sub(amount)
-                .ok_or_else(|| RuntimeError::UnderFlow)?..self.sp,
-        );
+        let frame = &self
+            .stack
+            .get(self.sp.checked_sub(amount).ok_or(RuntimeError::UnderFlow)?..self.sp);
         let poped = match frame {
             Some(data) => data,
             None => return Err(RuntimeError::UnderFlow),
@@ -216,13 +214,14 @@ impl VirtualMachine {
 pub struct DynamicInt;
 
 impl DynamicInt {
+    // TODO: try to optimize the decode and encode functions.
     pub fn decode(buf: &[u8]) -> Option<u64> {
         let first = *buf.first()?;
         let ones = ones_before_zero(first);
         if ones == 0 {
             return Some(first.into());
         }
-        let mask = 2_u8.pow(ones.into()) - 1 << 8 - ones;
+        let mask = (2_u8.pow(ones.into()) - 1) << (8 - ones);
 
         let mut result: u64 = 0;
         let first_part = first ^ mask;
@@ -252,7 +251,7 @@ impl DynamicInt {
 
         // 3. Encode all the remaining digits.
         let bits_to_encode = bits_dyn_int(ones);
-        let first: u8 = encoded_ones | (number >> bits_to_encode - bits_to_encode % 8) as u8;
+        let first: u8 = encoded_ones | (number >> (bits_to_encode - bits_to_encode % 8)) as u8;
         if ones == 0 {
             return vec![first];
         }
@@ -262,8 +261,8 @@ impl DynamicInt {
         let num_slice = number.to_be_bytes();
         result[1..(ones + 1).into()].copy_from_slice(&num_slice[8 - ones as usize..8]);
 
-        // 4. Enjoy!
-        return result;
+        // 4. Return
+        result
     }
 }
 
@@ -275,7 +274,8 @@ impl DynamicInt {
 /// let ones = rosa::ones_before_zero(number);
 /// assert_eq!(ones, 3);
 /// ```
-pub fn ones_before_zero(byte: u8) -> u8 {
+#[inline]
+pub const fn ones_before_zero(byte: u8) -> u8 {
     let mut mask = 1 << 7;
     let mut ones = 0;
 
@@ -287,12 +287,14 @@ pub fn ones_before_zero(byte: u8) -> u8 {
     ones
 }
 
+#[inline]
 pub const fn bits_dyn_int(ones: u8) -> u8 {
-    return (8 - ones - 1) + 8 * ones;
+    (8 - ones - 1) + 8 * ones
 }
 
-pub fn size_dyn_int(ones: u8) -> u64 {
-    return 2_u64.pow(bits_dyn_int(ones).into()) - 1;
+#[inline]
+pub const fn size_dyn_int(ones: u8) -> u64 {
+    2_u64.pow(bits_dyn_int(ones) as u32) - 1
 }
 
 pub fn ones_needed(number: u64) -> u8 {

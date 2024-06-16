@@ -4,7 +4,7 @@ use std::{collections::HashMap, fmt::Debug};
 
 use lazy_static::lazy_static;
 
-use crate::{Result, RuntimeError, VirtualMachine};
+use crate::{Result, VirtualMachine};
 
 /// An abstraction over what is an instruction of the Rosa VM.
 ///
@@ -44,7 +44,7 @@ impl Instruction for ExitInst {
 
 /// An help macro used to more easily build the [instruction set] of the VM.
 ///
-/// [instruction set]: struct@crate::bc::INSTRUCTION_SET
+/// [instruction set]: struct@crate::inst::INSTRUCTION_SET
 #[macro_export]
 macro_rules! inst_set {
     ($($inst:tt),*) => {
