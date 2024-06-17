@@ -13,32 +13,34 @@ use crate::{Result, RuntimeError, VirtualMachine};
 /// require it to be thread safe.
 pub trait Instruction: Sync + Debug {
     fn execute(&self, vm: &mut VirtualMachine) -> Result<()>;
+
+    fn opcode(&self) -> u8;
 }
 
 #[derive(Debug)]
 pub struct NoOpInst;
 
-impl NoOpInst {
-    pub const OPCODE: u8 = 0;
-}
-
 impl Instruction for NoOpInst {
     fn execute(&self, _: &mut VirtualMachine) -> Result<()> {
         Ok(())
+    }
+
+    fn opcode(&self) -> u8 {
+        0
     }
 }
 
 #[derive(Debug)]
 pub struct ExitInst;
 
-impl ExitInst {
-    pub const OPCODE: u8 = 1;
-}
-
 impl Instruction for ExitInst {
     fn execute(&self, vm: &mut VirtualMachine) -> Result<()> {
         vm.exit = Some(vm.stack_pop_one()?);
         Ok(())
+    }
+
+    fn opcode(&self) -> u8 {
+        1
     }
 }
 
@@ -54,10 +56,6 @@ impl Instruction for ExitInst {
 #[derive(Debug)]
 pub struct ConstInst;
 
-impl ConstInst {
-    pub const OPCODE: u8 = 2;
-}
-
 impl Instruction for ConstInst {
     fn execute(&self, vm: &mut VirtualMachine) -> Result<()> {
         let offset: usize = vm.read_dyn_int()? as usize;
@@ -69,6 +67,10 @@ impl Instruction for ConstInst {
         vm.stack_push(data);
         Ok(())
     }
+
+    fn opcode(&self) -> u8 {
+        2
+    }
 }
 
 /// An help macro used to more easily build the [instruction set] of the VM.
@@ -76,9 +78,9 @@ impl Instruction for ConstInst {
 /// [instruction set]: struct@crate::inst::INSTRUCTION_SET
 #[macro_export]
 macro_rules! inst_set {
-    ($($inst:tt),*) => {
+    ($($inst:expr),*) => {
         HashMap::from([
-            $( ($inst::OPCODE, &$inst as &'static dyn Instruction), )*
+            $( ($crate::inst::Instruction::opcode(&$inst), &$inst as &'static dyn Instruction), )*
         ])
     };
 }
