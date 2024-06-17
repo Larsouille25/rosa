@@ -17,6 +17,17 @@ pub trait Instruction: Sync + Debug {
     fn opcode(&self) -> u8;
 }
 
+/// The No-operation instruction, does nothing.
+///
+/// # Bytecode Layout
+///
+/// `NOOP`
+///
+/// Only the Op code.
+///
+/// # Stack
+///
+/// Does nothing.
 #[derive(Debug)]
 pub struct NoOpInst;
 
@@ -30,6 +41,17 @@ impl Instruction for NoOpInst {
     }
 }
 
+/// The exit instruction, stops the VM with the code poped from the stack.
+///
+/// # Bytecode Layout
+///
+/// `EXIT`
+///
+/// Only the Op code.
+///
+/// # Stack
+///
+/// Pops a byte from the stack and exit with the code poped from the stack.
 #[derive(Debug)]
 pub struct ExitInst;
 
@@ -47,12 +69,16 @@ impl Instruction for ExitInst {
 /// The const instruction, loads a constant from the constant pool and push it
 /// on the stack.
 ///
-/// # Memory
+/// # Bytecode Layout
 ///
 /// `CONST offset:dynint`
 ///
 /// The opcode for the const instruction is followed by the offset in the pool
 /// encoded as a dynamic integer.
+///
+/// # Stack
+///
+/// Push the constant on to the stack.
 #[derive(Debug)]
 pub struct ConstInst;
 
