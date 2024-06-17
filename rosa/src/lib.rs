@@ -1,4 +1,6 @@
 use std::{
+    borrow::Cow,
+    collections::HashMap,
     fmt::Display,
     io::{self, Write},
 };
@@ -53,6 +55,10 @@ pub enum RuntimeError {
     UnknownInst { inst: u8 },
     /// IP tried to get an instruction out of the boundaries of the Chunk
     ProgramOverFlow,
+    /// failed to decode a dynamic integer.
+    DynInt,
+    /// unknown offset in the constant pool
+    UnknownConst { offset: usize },
 }
 
 impl Display for RuntimeError {
@@ -62,6 +68,10 @@ impl Display for RuntimeError {
             Self::UnderFlow => write!(f, "stack under flow"),
             Self::UnknownInst { inst } => write!(f, "unknown instruction {inst:#04X?}"),
             Self::ProgramOverFlow => write!(f, "over run of the chunk bytecode"),
+            Self::DynInt => write!(f, "failed to decode a dynamic integer"),
+            Self::UnknownConst { offset } => {
+                write!(f, "unknown offset ({offset:#010X?}) in the constant pool")
+            }
         }
     }
 }
@@ -94,6 +104,38 @@ impl RuntimeError {
     }
 }
 
+/// The constant pool, it contains all constants that will be used by the
+/// program.
+#[derive(Debug, Clone)]
+pub struct ConstantPool {
+    // TODO: idk if a usize as the size is realy appropriate.. it maybe too big
+    // for what we really need
+    /// The layout of the constant pool. The key is the starting byte offset in
+    /// the data buffer, the value is the lenght of the pointed data.
+    layout: HashMap<usize, usize>,
+    /// The buffer containing all the constant values in the program.
+    data: Vec<u8>,
+}
+
+impl ConstantPool {
+    pub const fn new(layout: HashMap<usize, usize>, data: Vec<u8>) -> ConstantPool {
+        ConstantPool { layout, data }
+    }
+
+    #[inline]
+    /// Get the constant at the offset. If it doesn't succeed this method
+    /// returns `None`.
+    pub fn get(&self, offset: usize) -> Option<&[u8]> {
+        self.data.get(offset..offset + self.layout.get(&offset)?)
+    }
+}
+
+impl Default for ConstantPool {
+    fn default() -> Self {
+        ConstantPool::new(HashMap::new(), Vec::new())
+    }
+}
+
 /// The stack virtual machine used to execute Rosa ByteCode.
 #[derive(Debug)]
 pub struct VirtualMachine {
@@ -109,6 +151,7 @@ pub struct VirtualMachine {
     /// if `None`, then keep running.
     /// but if `Some`, stop and the value is the exit code.
     exit: Option<u8>,
+    pool: ConstantPool,
 }
 
 impl VirtualMachine {
@@ -122,19 +165,24 @@ impl VirtualMachine {
 
     /// Creates a new virtual machine with the given program. The stack has a
     /// default size of [`Self::DEFAULT_STACK_SIZE`].
-    pub fn new(program: Chunk) -> VirtualMachine {
-        VirtualMachine::with_stack_size(program, Self::DEFAULT_STACK_SIZE)
+    pub fn new(program: Chunk, pool: ConstantPool) -> VirtualMachine {
+        VirtualMachine::with_stack_size(program, Self::DEFAULT_STACK_SIZE, pool)
     }
 
     /// Creates a new virtual machine with the given program and the initial
     /// stack size.
-    pub fn with_stack_size(program: Chunk, stack_size: usize) -> VirtualMachine {
+    pub fn with_stack_size(
+        program: Chunk,
+        stack_size: usize,
+        pool: ConstantPool,
+    ) -> VirtualMachine {
         VirtualMachine {
             program,
             ip: 0,
             stack: vec![0; stack_size],
             sp: 0,
             exit: None,
+            pool,
         }
     }
 
@@ -143,7 +191,6 @@ impl VirtualMachine {
             let inst = self.read_byte()?;
             match inst::INSTRUCTION_SET.get(&inst) {
                 Some(inst) => {
-                    dbg!(inst);
                     inst.execute(self)?;
                 }
                 None => return Err(RuntimeError::UnknownInst { inst }),
@@ -162,14 +209,15 @@ impl VirtualMachine {
         Ok(byte)
     }
 
-    pub fn stack_push(&mut self, data: &[u8]) {
+    pub fn stack_push<'a>(&mut self, data: impl Into<Cow<'a, [u8]>>) {
+        let data = data.into();
         let size = data.len();
         if self.stack.len() < self.sp + size {
             // maybe not optimal to double the size?
             self.extend_stack(self.sp);
         }
         let stack_bite = &mut self.stack[self.sp..self.sp + size];
-        stack_bite.copy_from_slice(data);
+        stack_bite.copy_from_slice(&data);
         self.sp += size;
     }
 
@@ -208,6 +256,23 @@ impl VirtualMachine {
             return true;
         }
         false
+    }
+
+    /// Read a dynamic integer from the chunk.
+    pub fn read_dyn_int(&mut self) -> Result<u64> {
+        let first = self.read_byte()?;
+        let size = ones_before_zero(first);
+        let number = DynamicInt::decode(
+            self.program
+                .data
+                .get(self.ip - 1..self.ip + size as usize)
+                .ok_or(RuntimeError::ProgramOverFlow)?,
+        );
+        self.ip += size as usize;
+        match number {
+            Some(num) => Ok(num),
+            None => Err(RuntimeError::DynInt),
+        }
     }
 }
 
