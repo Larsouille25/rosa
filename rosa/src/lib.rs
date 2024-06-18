@@ -3,11 +3,13 @@ use std::{
     collections::HashMap,
     fmt::Display,
     io::{self, Write},
+    mem::size_of,
 };
 
 use lazy_static::lazy_static;
 use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
 
+pub mod arith_macro;
 pub mod inst;
 
 /// A chunk of Rosa ByteCode.
@@ -136,6 +138,60 @@ impl Default for ConstantPool {
     }
 }
 
+pub trait FromBytes {
+    fn from_bytes(bytes: &[u8]) -> Self;
+}
+
+pub trait IntoBytes {
+    fn into_bytes(self, dst: &mut [u8]);
+}
+
+impl IntoBytes for bool {
+    fn into_bytes(self, dst: &mut [u8]) {
+        let bytes = Into::<u8>::into(self).to_be_bytes();
+        dst.clone_from_slice(&bytes);
+    }
+}
+
+macro_rules! bytes_impl {
+    ($ty:ident) => {
+        impl FromBytes for $ty {
+            fn from_bytes(bytes: &[u8]) -> Self {
+                let bytes: [u8; std::mem::size_of::<$ty>()] = bytes.try_into().unwrap();
+                $ty::from_be_bytes(bytes)
+            }
+        }
+
+        impl IntoBytes for $ty {
+            fn into_bytes(self, dst: &mut [u8]) {
+                let bytes = self.to_be_bytes();
+                dst.clone_from_slice(&bytes);
+            }
+        }
+    };
+
+    ($( $type:ident ; )*) => (
+        $(
+            bytes_impl!{$type}
+        )*
+    )
+}
+
+bytes_impl! {
+    u8;
+    u16;
+    u32;
+    u64;
+    u128;
+    usize;
+    i8;
+    i16;
+    i32;
+    i64;
+    i128;
+    isize;
+}
+
 /// The stack virtual machine used to execute Rosa ByteCode.
 #[derive(Debug)]
 pub struct VirtualMachine {
@@ -200,6 +256,7 @@ impl VirtualMachine {
     }
 
     /// Reads the byte pointed by `ip` and advance by one the `ip` pointer.
+    #[must_use]
     pub fn read_byte(&mut self) -> Result<u8> {
         let byte = match self.program.get(self.ip) {
             Some(byte) => byte,
@@ -209,7 +266,7 @@ impl VirtualMachine {
         Ok(byte)
     }
 
-    pub fn stack_push<'a>(&mut self, data: impl Into<Cow<'a, [u8]>>) {
+    pub fn stack_push_raw<'a>(&mut self, data: impl Into<Cow<'a, [u8]>>) {
         let data = data.into();
         let size = data.len();
         if self.stack.len() < self.sp + size {
@@ -221,7 +278,8 @@ impl VirtualMachine {
         self.sp += size;
     }
 
-    pub fn stack_pop(&mut self, amount: impl Into<usize>) -> Result<&[u8]> {
+    #[must_use]
+    pub fn stack_pop_raw(&mut self, amount: impl Into<usize>) -> Result<&[u8]> {
         let amount = amount.into();
         let frame = &self
             .stack
@@ -234,8 +292,9 @@ impl VirtualMachine {
         Ok(poped)
     }
 
+    #[must_use]
     pub fn stack_pop_one(&mut self) -> Result<u8> {
-        Ok(*self.stack_pop(1usize)?.first().unwrap())
+        Ok(*self.stack_pop_raw(1usize)?.first().unwrap())
     }
 
     /// Extends the stack to contain `amount` more bytes of free space.
@@ -243,6 +302,7 @@ impl VirtualMachine {
         self.stack.extend(vec![0; amount]);
     }
 
+    #[must_use]
     pub fn stacktrace(&self) -> Box<[u8]> {
         // TODO: Make the stack size configurable.
         const TRACE_SIZE: usize = 32;
@@ -250,6 +310,7 @@ impl VirtualMachine {
         Box::from(self.stack.get(self.sp - amount..self.sp).unwrap())
     }
 
+    #[must_use]
     pub fn finished(&mut self) -> bool {
         if self.ip >= self.program.data.len() {
             self.exit = Some(0);
@@ -259,6 +320,7 @@ impl VirtualMachine {
     }
 
     /// Read a dynamic integer from the chunk.
+    #[must_use]
     pub fn read_dyn_int(&mut self) -> Result<u64> {
         let first = self.read_byte()?;
         let size = ones_before_zero(first);
@@ -273,6 +335,28 @@ impl VirtualMachine {
             Some(num) => Ok(num),
             None => Err(RuntimeError::DynInt),
         }
+    }
+
+    #[must_use]
+    pub fn stack_pop<T>(&mut self) -> Result<T>
+    where
+        T: FromBytes,
+    {
+        match self.stack_pop_raw(size_of::<T>()) {
+            Ok(bytes) => Ok(T::from_bytes(bytes)),
+            Err(err) => Err(err),
+        }
+    }
+
+    pub fn stack_push<T: IntoBytes>(&mut self, value: T) {
+        let size = size_of::<T>();
+        if self.stack.len() < self.sp + size {
+            // maybe not optimal to double the size?
+            self.extend_stack(self.sp);
+        }
+        let here = &mut self.stack[self.sp..self.sp + size];
+        value.into_bytes(here);
+        self.sp += size;
     }
 }
 

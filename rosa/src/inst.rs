@@ -4,7 +4,7 @@ use std::{collections::HashMap, fmt::Debug};
 
 use lazy_static::lazy_static;
 
-use crate::{Result, RuntimeError, VirtualMachine};
+use crate::{arith_impl, Result, RuntimeError, VirtualMachine};
 
 /// An abstraction over what is an instruction of the Rosa VM.
 ///
@@ -57,7 +57,7 @@ pub struct ExitInst;
 
 impl Instruction for ExitInst {
     fn execute(&self, vm: &mut VirtualMachine) -> Result<()> {
-        vm.exit = Some(vm.stack_pop_one()?);
+        vm.exit = Some(vm.stack_pop()?);
         Ok(())
     }
 
@@ -90,13 +90,56 @@ impl Instruction for ConstInst {
             .get(offset)
             .ok_or(RuntimeError::UnknownConst { offset })?
             .to_owned();
-        vm.stack_push(data);
+        vm.stack_push_raw(data);
         Ok(())
     }
 
     fn opcode(&self) -> u8 {
         2
     }
+}
+
+arith_impl! {
+    RustType = u8;
+
+    MulInst = U8MulInst;
+    MulInstOpcode = 3;
+
+    DivInst = U8DivInst;
+    DivInstOpcode = 4;
+
+    RemInst = U8RemInst;
+    RemInstOpcode = 5;
+
+    AddInst = U8AddInst;
+    AddInstOpcode = 6;
+
+    SubInst = U8SubInst;
+    SubInstOpcode = 7;
+
+    ShrInst = U8ShrInst;
+    ShrInstOpcode = 8;
+
+    ShlInst = U8ShlInst;
+    ShlInstOpcode = 9;
+
+    CompLTInst = U8CompLTInst;
+    CompLTInstOpcode = 10;
+
+    CompGTInst = U8CompGTInst;
+    CompGTInstOpcode = 11;
+
+    CompLTEInst = U8CompLTEInst;
+    CompLTEInstOpcode = 12;
+
+    CompGTEInst = U8CompGTEInst;
+    CompGTEInstOpcode = 13;
+
+    CompEqInst = U8CompEqInst;
+    CompEqInstOpcode = 14;
+
+    CompNeInst = U8CompNeInst;
+    CompNeInstOpcode = 15;
 }
 
 /// An help macro used to more easily build the [instruction set] of the VM.
@@ -116,5 +159,23 @@ lazy_static! {
     ///
     /// Using an HashMap with a key of type u8 is kinda dumb but idk what to
     /// use then??
-    pub static ref INSTRUCTION_SET: HashMap<u8, &'static dyn Instruction> = inst_set!(NoOpInst, ExitInst, ConstInst);
+    pub static ref INSTRUCTION_SET: HashMap<u8, &'static dyn Instruction> = inst_set!(
+        NoOpInst,
+        ExitInst,
+        ConstInst,
+        // u8
+        U8MulInst,
+        U8DivInst,
+        U8RemInst,
+        U8AddInst,
+        U8SubInst,
+        U8ShrInst,
+        U8ShlInst,
+        U8CompLTInst,
+        U8CompGTInst,
+        U8CompLTEInst,
+        U8CompGTEInst,
+        U8CompEqInst,
+        U8CompNeInst
+    );
 }
