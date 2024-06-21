@@ -36,7 +36,7 @@ pub enum TokenType {
 impl Display for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::KW(kw) => write!(f, "keyword `{kw}``"),
+            Self::KW(kw) => write!(f, "keyword `{kw}`"),
             Self::Punct(punct) => write!(f, "`{punct}`"),
             Self::Int(i) => write!(f, "int `{i}`"),
             Self::Str(s) => write!(f, "string {s:?}"),
@@ -175,13 +175,13 @@ impl Display for Keyword {
             f,
             "{}",
             match self {
-                Self::Fun => "keyword fun",
-                Self::Return => "keyword return",
-                Self::Val => "keyword val",
-                Self::Var => "keyword var",
-                Self::Type => "keyword type",
-                Self::True => "keyword true",
-                Self::False => "keyword false",
+                Self::Fun => "fun",
+                Self::Return => "return",
+                Self::Val => "val",
+                Self::Var => "var",
+                Self::Type => "type",
+                Self::True => "true",
+                Self::False => "false",
             }
         )
     }
