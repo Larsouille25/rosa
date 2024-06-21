@@ -3,7 +3,7 @@ use rosa_errors::{Diag, Fuzzy};
 use rosac_lexer::{
     abs::AbsLexer,
     tokens::{
-        Punctuation, Token,
+        Keyword, Punctuation, Token,
         TokenType::{self, *},
     },
 };
@@ -175,6 +175,7 @@ pub enum ExpressionInner {
 
     // primary expression
     IntLiteral(u64),
+    BoolLiteral(bool),
 }
 
 impl AstNode for ExpressionInner {
@@ -183,6 +184,10 @@ impl AstNode for ExpressionInner {
     fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> Fuzzy<Self::Output, Diag> {
         match parser.peek_tok() {
             Token { tt: Int(_), .. } => parse_intlit_expr(parser),
+            Token {
+                tt: KW(Keyword::True | Keyword::False),
+                ..
+            } => parse_boollit_expr(parser),
             Token {
                 tt: Punct(punct), ..
             } if UnaryOp::from_punct(punct.clone()).is_some_and(|op| op.is_left()) => {
@@ -291,5 +296,22 @@ pub fn parse_left_unary_expr(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Ex
     Fuzzy::Ok(Expression {
         loc: Span::from_ends(lhs, operand.loc.clone()),
         expr: ExpressionInner::UnaryExpr { op, operand },
+    })
+}
+
+pub fn parse_boollit_expr(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Expression, Diag> {
+    let (bool, loc) = expect_token!(
+        parser => [
+            KW(Keyword::True), true;
+            KW(Keyword::False), false
+        ],
+        [
+            FmtToken::KW(Keyword::True),
+            FmtToken::KW(Keyword::False)
+        ]
+    );
+    Fuzzy::Ok(Expression {
+        expr: ExpressionInner::BoolLiteral(bool),
+        loc,
     })
 }
