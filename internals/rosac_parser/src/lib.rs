@@ -104,7 +104,7 @@ impl Display for FmtToken {
     }
 }
 
-pub enum AstNodes {
+pub enum AstPart {
     Expression,
     Statement,
     FunctionDef,
@@ -113,7 +113,7 @@ pub enum AstNodes {
     UnaryOperator,
 }
 
-impl Display for AstNodes {
+impl Display for AstPart {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Expression => write!(f, "expression"),

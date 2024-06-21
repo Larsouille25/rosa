@@ -11,7 +11,7 @@ use rosac_lexer::{
 use crate::{
     expect_token, expected_tok_msg, parse,
     precedence::{operator_precedence, PrecedenceValue},
-    AstNode, AstNodes, FmtToken, Parser,
+    AstNode, AstPart, FmtToken, Parser,
 };
 
 /// An operator, either a binary operator or a unary operator.
@@ -193,7 +193,7 @@ impl AstNode for ExpressionInner {
                 Fuzzy::Err(
                     parser
                         .dcx()
-                        .struct_err(expected_tok_msg(t.tt, [FmtToken::IntLiteral]), t.loc),
+                        .struct_err(expected_tok_msg(t.tt, [AstPart::Expression]), t.loc),
                 )
             }
         }
@@ -272,7 +272,7 @@ pub fn parse_binary_expr(
 
 pub fn parse_left_unary_expr(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Expression, Diag> {
     let (punct, lhs) =
-        expect_token!(parser => [Punct(punct), punct.clone()], [AstNodes::UnaryOperator]);
+        expect_token!(parser => [Punct(punct), punct.clone()], [AstPart::UnaryOperator]);
 
     let op = match UnaryOp::from_punct(punct.clone()) {
         Some(v) if v.is_left() => v,
