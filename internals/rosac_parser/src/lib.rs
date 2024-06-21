@@ -140,7 +140,7 @@ macro_rules! expect_token {
     );
 
     ($parser:expr => [ $($token:pat, $result:expr);* ], $expected:expr) => (
-        $crate::expect_token!($parser => [ $($token, $result)* ] else {
+        $crate::expect_token!($parser => [ $($token, $result);* ] else {
             let found = $parser.peek_tok().clone();
             return Fuzzy::Err(
                 $parser
