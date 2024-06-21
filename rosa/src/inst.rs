@@ -142,12 +142,55 @@ arith_impl! {
     CompNeInstOpcode = 15;
 }
 
+arith_impl! {
+    RustType = u8;
+
+    MulInst = U16MulInst;
+    MulInstOpcode = 16;
+
+    DivInst = U16DivInst;
+    DivInstOpcode = 17;
+
+    RemInst = U16RemInst;
+    RemInstOpcode = 18;
+
+    AddInst = U16AddInst;
+    AddInstOpcode = 19;
+
+    SubInst = U16SubInst;
+    SubInstOpcode = 20;
+
+    ShrInst = U16ShrInst;
+    ShrInstOpcode = 21;
+
+    ShlInst = U16ShlInst;
+    ShlInstOpcode = 22;
+
+    CompLTInst = U16CompLTInst;
+    CompLTInstOpcode = 23;
+
+    CompGTInst = U16CompGTInst;
+    CompGTInstOpcode = 24;
+
+    CompLTEInst = U16CompLTEInst;
+    CompLTEInstOpcode = 25;
+
+    CompGTEInst = U16CompGTEInst;
+    CompGTEInstOpcode = 26;
+
+    CompEqInst = U16CompEqInst;
+    CompEqInstOpcode = 27;
+
+    CompNeInst = U16CompNeInst;
+    CompNeInstOpcode = 28;
+}
+
 /// An help macro used to more easily build the [instruction set] of the VM.
 ///
 /// [instruction set]: struct@crate::inst::INSTRUCTION_SET
 #[macro_export]
 macro_rules! inst_set {
-    ($($inst:expr),*) => {
+    ($($inst:expr),* $(,)?) => {
         HashMap::from([
             $( ($crate::inst::Instruction::opcode(&$inst), &$inst as &'static dyn Instruction), )*
         ])
@@ -176,6 +219,20 @@ lazy_static! {
         U8CompLTEInst,
         U8CompGTEInst,
         U8CompEqInst,
-        U8CompNeInst
+        U8CompNeInst,
+        // u16
+        U16MulInst,
+        U16DivInst,
+        U16RemInst,
+        U16AddInst,
+        U16SubInst,
+        U16ShrInst,
+        U16ShlInst,
+        U16CompLTInst,
+        U16CompGTInst,
+        U16CompLTEInst,
+        U16CompGTEInst,
+        U16CompEqInst,
+        U16CompNeInst,
     );
 }
