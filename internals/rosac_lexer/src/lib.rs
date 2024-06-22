@@ -183,7 +183,7 @@ impl<'r> Lexer<'r> {
 
     pub(crate) fn make_word(&mut self, c: char) -> (String, bool) {
         let mut word = String::from(c);
-        let mut numeric = true;
+        let mut numeric = c.is_numeric();
 
         while let Some(c) = self.peek() {
             match c {
