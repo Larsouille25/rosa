@@ -122,14 +122,29 @@ impl<'r> Lexer<'r> {
         self.file.pop()
     }
 
+    pub fn expect(&mut self, expected: char) {
+        let popped = self.pop().unwrap();
+        assert_eq!(popped, expected, "Expected to be the same")
+    }
+
+    #[inline]
     pub fn peek(&mut self) -> Option<char> {
         self.file.peek()
     }
 
+    /// Current location
     pub fn current_span(&self) -> Span {
         Span {
             lo: self.prev_idx,
             hi: self.idx,
+        }
+    }
+
+    /// Current location but used when we know we are at the end of file.
+    pub fn current_span_end(&self) -> Span {
+        Span {
+            lo: self.prev_idx,
+            hi: self.idx - 1.into(),
         }
     }
 
@@ -150,7 +165,7 @@ impl<'r> Lexer<'r> {
                     return self.lex_word(c);
                 }
                 Some('\n') => NewLine,
-                // an indentation is either 4 spaces or a tabulation.
+                Some('"') => return self.lex_str(),
                 Some(c) => {
                     if let Some(punct) = self.could_make_punct(c) {
                         // pop the lenght of the punctuation.
@@ -168,7 +183,7 @@ impl<'r> Lexer<'r> {
                     let len = self.file.length();
                     return Fuzzy::Ok(Token {
                         tt: EOF,
-                        loc: Span::new(len, len),
+                        loc: Span::new(len - 1, len),
                     });
                 }
             }
@@ -180,7 +195,7 @@ impl<'r> Lexer<'r> {
         })
     }
 
-    pub(crate) fn make_word(&mut self, c: char) -> (String, bool) {
+    pub fn make_word(&mut self, c: char) -> (String, bool) {
         let mut word = String::from(c);
         let mut numeric = c.is_numeric();
 
@@ -201,7 +216,7 @@ impl<'r> Lexer<'r> {
         (word, numeric)
     }
 
-    pub(crate) fn lex_word(&mut self, c: char) -> Fuzzy<Token, Diag> {
+    pub fn lex_word(&mut self, c: char) -> Fuzzy<Token, Diag> {
         let (word, numeric) = self.make_word(c);
 
         let tt = if numeric {
@@ -216,7 +231,7 @@ impl<'r> Lexer<'r> {
         })
     }
 
-    pub(crate) fn lex_keyword(&self, word: String) -> TokenType {
+    pub fn lex_keyword(&self, word: String) -> TokenType {
         if let Ok(kw) = Keyword::from_str(&word) {
             TokenType::KW(kw)
         } else {
@@ -224,7 +239,7 @@ impl<'r> Lexer<'r> {
         }
     }
 
-    pub(crate) fn skip_useless_whitespace(&mut self) {
+    pub fn skip_useless_whitespace(&mut self) {
         while let Some(c) = self.peek() {
             match c {
                 ' ' => {
@@ -247,7 +262,7 @@ impl<'r> Lexer<'r> {
         }
     }
 
-    pub(crate) fn could_make_punct(&mut self, c: char) -> Option<Punctuation> {
+    pub fn could_make_punct(&mut self, c: char) -> Option<Punctuation> {
         use Punctuation::*;
         Some(match c {
             // single char punctuation
