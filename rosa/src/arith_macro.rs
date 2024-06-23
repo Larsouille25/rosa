@@ -3,6 +3,27 @@
 #[doc(hidden)]
 #[macro_export]
 macro_rules! arith_inst {
+    (@aritherr $type:ty, $name:ident, $opcode:expr, $op:ident, $msg:expr) => {
+        // TODO: Add documentation here like the doc of the ConstInst.
+        #[derive(Debug)]
+        pub struct $name;
+
+        impl $crate::inst::Instruction for $name {
+            fn execute(&self, vm: &mut $crate::VirtualMachine) -> $crate::Result<()> {
+                let b = vm.stack_pop::<$type>()?;
+                let a = vm.stack_pop::<$type>()?;
+                let Some(res) = a.$op(b.into()) else {
+                    return Err($crate::RuntimeError::ArithmeticError { msg: $msg });
+                };
+                vm.stack_push(res);
+                Ok(())
+            }
+
+            fn opcode(&self) -> u8 {
+                $opcode
+            }
+        }
+    };
     ($type:ty, $name:ident, $opcode:expr, $op:tt) => {
         // TODO: Add documentation here like the doc of the ConstInst.
         #[derive(Debug)]
@@ -12,7 +33,6 @@ macro_rules! arith_inst {
             fn execute(&self, vm: &mut $crate::VirtualMachine) -> $crate::Result<()> {
                 let b = vm.stack_pop::<$type>()?;
                 let a = vm.stack_pop::<$type>()?;
-                // TODO: provide better error handling of operations
                 vm.stack_push(a $op b);
                 Ok(())
             }
@@ -68,15 +88,57 @@ macro_rules! arith_impl {
         CompNeInst = $compneinst:ident;
         CompNeInstOpcode = $compneinst_opcode:expr;
     ) => {
-        $crate::arith_inst! { $type, $mulinst, $mulinst_opcode, * }
-        $crate::arith_inst! { $type, $divinst, $divinst_opcode, / }
-        $crate::arith_inst! { $type, $reminst, $reminst_opcode, % }
+        $crate::arith_inst! {
+            @aritherr $type,
+            $mulinst,
+            $mulinst_opcode,
+            checked_mul,
+            "multiplication overflow"
+        }
+        $crate::arith_inst! {
+            @aritherr $type,
+            $divinst,
+            $divinst_opcode,
+            checked_div,
+            "division by zero"
+        }
+        $crate::arith_inst! {
+            @aritherr $type,
+            $reminst,
+            $reminst_opcode,
+            checked_rem,
+            "remainder by zero"
+        }
 
-        $crate::arith_inst! { $type, $addinst, $addinst_opcode, + }
-        $crate::arith_inst! { $type, $subinst, $subinst_opcode, - }
+        $crate::arith_inst! {
+            @aritherr $type,
+            $addinst,
+            $addinst_opcode,
+            checked_add,
+            "addition with overflow"
+        }
+        $crate::arith_inst! {
+            @aritherr $type,
+            $subinst,
+            $subinst_opcode,
+            checked_sub,
+            "substraction with overflow"
+        }
 
-        $crate::arith_inst! { $type, $shrinst, $shrinst_opcode, >> }
-        $crate::arith_inst! { $type, $shlinst, $shlinst_opcode, << }
+        $crate::arith_inst! {
+            @aritherr $type,
+            $shrinst,
+            $shrinst_opcode,
+            checked_shr,
+            "right shift with overflow"
+        }
+        $crate::arith_inst! {
+            @aritherr $type,
+            $shlinst,
+            $shlinst_opcode,
+            checked_shl,
+            "left shift with overflow"
+        }
 
         $crate::arith_inst! { $type, $compltinst, $compltinst_opcode, < }
         $crate::arith_inst! { $type, $compgtinst, $compgtinst_opcode, > }

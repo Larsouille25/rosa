@@ -61,6 +61,9 @@ pub enum RuntimeError {
     DynInt,
     /// unknown offset in the constant pool
     UnknownConst { offset: usize },
+    /// arithmetic error, the message ('msg') explains what is the arithmetic
+    /// error in question
+    ArithmeticError { msg: &'static str },
 }
 
 impl Display for RuntimeError {
@@ -73,6 +76,9 @@ impl Display for RuntimeError {
             Self::DynInt => write!(f, "failed to decode a dynamic integer"),
             Self::UnknownConst { offset } => {
                 write!(f, "unknown offset ({offset:#010X?}) in the constant pool")
+            }
+            Self::ArithmeticError { msg } => {
+                write!(f, "arithmetic error: {msg}")
             }
         }
     }
