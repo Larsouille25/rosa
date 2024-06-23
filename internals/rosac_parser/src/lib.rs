@@ -45,22 +45,27 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
         }
     }
 
+    #[inline]
     pub fn dcx(&self) -> &DiagCtxt {
         self.lexer.dcx()
     }
 
+    #[inline]
     pub fn consume_tok(&mut self) -> Option<Token> {
         self.lexer.consume()
     }
 
+    #[inline]
     pub fn nth_tok(&mut self, idx: usize) -> Option<&Token> {
         self.lexer.peek_nth(idx)
     }
 
+    #[inline]
     pub fn try_peek_tok(&mut self) -> Option<&Token> {
         self.nth_tok(0)
     }
 
+    #[inline]
     pub fn peek_tok(&mut self) -> &Token {
         self.try_peek_tok().unwrap()
     }
@@ -76,10 +81,12 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
         self.scopelvl += 1;
     }
 
+    #[inline]
     pub fn leave_scope(&mut self) {
         self.scopelvl -= 1;
     }
 
+    #[inline]
     pub fn scope(&mut self, lf: &Span) -> Option<u32> {
         let ws = self.try_peek_tok()?.loc.lo - lf.hi;
         Some(ws.0 / self.indent_size)
@@ -99,7 +106,8 @@ pub trait Location {
 #[macro_export]
 macro_rules! derive_loc {
     ($t:ty $(where $( $tt:tt )* )? ) => {
-        impl $( $( $tt )* )?  $crate::Location for $t {
+        impl $( $( $tt )* )? $crate::Location for $t {
+            #[inline]
             fn loc(&self) -> rosa_comm::Span {
                 self.loc.clone()
             }
