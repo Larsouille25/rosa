@@ -151,13 +151,6 @@ impl<'r> Lexer<'r> {
                 }
                 Some('\n') => NewLine,
                 // an indentation is either 4 spaces or a tabulation.
-                Some(' ') if self.window(4) == Some("    ") => {
-                    self.pop();
-                    self.pop();
-                    self.pop();
-                    Indent
-                }
-                Some('\t') => Indent,
                 Some(c) => {
                     if let Some(punct) = self.could_make_punct(c) {
                         // pop the lenght of the punctuation.
@@ -228,7 +221,7 @@ impl<'r> Lexer<'r> {
     pub(crate) fn skip_useless_whitespace(&mut self) {
         while let Some(c) = self.peek() {
             match c {
-                ' ' if self.window(4) != Some("    ") => {
+                ' ' => {
                     self.pop();
                 }
                 '\u{000B}'..='\u{000D}'

@@ -26,7 +26,6 @@ pub enum TokenType {
     Ident(String),
 
     // Special White Space
-    Indent,
     NewLine,
 
     // End of file
@@ -42,7 +41,6 @@ impl Display for TokenType {
             Self::Str(s) => write!(f, "string {s:?}"),
             Self::Char(c) => write!(f, "char {c:?}"),
             Self::Ident(id) => write!(f, "identifier `{id}`"),
-            Self::Indent => write!(f, "indendation"),
             Self::NewLine => write!(f, "new line"),
             Self::EOF => write!(f, "end of file"),
         }
