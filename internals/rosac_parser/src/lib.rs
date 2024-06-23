@@ -11,12 +11,12 @@ use rosac_lexer::{
     abs::{AbsLexer, BufferedLexer},
     tokens::{Keyword, Punctuation, Token},
 };
-
-use crate::expr::Expression;
+use stmt::Statement;
 
 pub mod block;
 pub mod expr;
 pub mod precedence;
+pub mod stmt;
 
 pub struct Parser<'r, L: AbsLexer = BufferedLexer<'r>> {
     /// the underlying lexer
@@ -32,7 +32,7 @@ pub struct Parser<'r, L: AbsLexer = BufferedLexer<'r>> {
 }
 
 // TODO: It is temporary, The top level ast node will not be expression.
-type TopLevelAst = Expression;
+type TopLevelAst = Statement;
 
 impl<'r, L: AbsLexer> Parser<'r, L> {
     pub fn new(lexer: L) -> Parser<'r, L> {
@@ -69,6 +69,7 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
     pub fn begin_parsing(&mut self) -> Fuzzy<TopLevelAst, Diag> {
         TopLevelAst::parse(self)
     }
+
     pub fn enter_scope(&mut self, lf: &Span) {
         if self.scopelvl == 0 {
             self.indent_size = (self.peek_tok().loc.lo - lf.hi).0;
