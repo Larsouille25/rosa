@@ -5,6 +5,7 @@ use std::{
 };
 
 use precedence::PrecedenceValue;
+use rosa_comm::Span;
 use rosa_errors::{Diag, DiagCtxt, Fuzzy};
 use rosac_lexer::{
     abs::{AbsLexer, BufferedLexer},
@@ -13,6 +14,7 @@ use rosac_lexer::{
 
 use crate::expr::Expression;
 
+pub mod block;
 pub mod expr;
 pub mod precedence;
 
@@ -21,6 +23,10 @@ pub struct Parser<'r, L: AbsLexer = BufferedLexer<'r>> {
     lexer: L,
     /// the actual precedence value when parsing expressions
     current_precedence: PrecedenceValue,
+    /// Current indentation level
+    scopelvl: u32,
+    /// How wide is an indentation
+    indent_size: u32,
     /// used to be able to make the L type default to BufferedLexer.
     _marker: PhantomData<&'r ()>,
 }
@@ -33,6 +39,8 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
         Parser {
             lexer,
             current_precedence: 0,
+            scopelvl: 0,
+            indent_size: 0,
             _marker: PhantomData,
         }
     }
@@ -60,6 +68,20 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
 
     pub fn begin_parsing(&mut self) -> Fuzzy<TopLevelAst, Diag> {
         TopLevelAst::parse(self)
+    }
+    pub fn enter_scope(&mut self, lf: &Span) {
+        if self.scopelvl == 0 {
+            self.indent_size = (self.peek_tok().loc.lo - lf.hi).0;
+        }
+        self.scopelvl += 1;
+    }
+
+    pub fn leave_scope(&mut self) {
+        self.scopelvl -= 1;
+    }
+
+    pub fn scope(&mut self, lf: &Span) -> Option<u32> {
+        Some((self.try_peek_tok()?.loc.lo - lf.hi).0 / self.indent_size)
     }
 }
 
