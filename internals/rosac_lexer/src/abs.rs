@@ -146,8 +146,19 @@ impl<'r> AbsLexer for BufferedLexer<'r> {
         if idx + 1 > self.buf.len() {
             // the amount needed to pre lex
             let amount = idx - self.buf.len() + 1;
-            for diag in self.pre_lex(amount) {
-                self.dcx().emit_diag(diag);
+            let mut lexed = 0;
+            let initial_len = self.buf.len();
+
+            // we loop until we have enough tokens or we reached the end of file
+            loop {
+                let res = self.pre_lex(amount);
+                for diag in &res {
+                    self.dcx().emit_diag(diag.clone());
+                }
+                lexed += self.buf.len() - initial_len;
+                if (lexed >= amount) || self.finished() {
+                    break;
+                }
             }
         }
 
