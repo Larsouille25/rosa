@@ -148,6 +148,8 @@ pub enum Keyword {
     Type,
     True,
     False,
+    If,
+    Else,
 }
 
 impl FromStr for Keyword {
@@ -162,6 +164,8 @@ impl FromStr for Keyword {
             "type" => Keyword::Type,
             "true" => Keyword::True,
             "false" => Keyword::False,
+            "if" => Keyword::If,
+            "else" => Keyword::Else,
             _ => return Err(()),
         })
     }
@@ -180,6 +184,8 @@ impl Display for Keyword {
                 Self::Type => "type",
                 Self::True => "true",
                 Self::False => "false",
+                Self::If => "if",
+                Self::Else => "else",
             }
         )
     }
