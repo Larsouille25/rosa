@@ -256,7 +256,6 @@ impl VirtualMachine {
     }
 
     /// Reads the byte pointed by `ip` and advance by one the `ip` pointer.
-    #[must_use]
     pub fn read_byte(&mut self) -> Result<u8> {
         let byte = match self.program.get(self.ip) {
             Some(byte) => byte,
@@ -278,7 +277,6 @@ impl VirtualMachine {
         self.sp += size;
     }
 
-    #[must_use]
     pub fn stack_pop_raw(&mut self, amount: impl Into<usize>) -> Result<&[u8]> {
         let amount = amount.into();
         let frame = &self
@@ -292,7 +290,6 @@ impl VirtualMachine {
         Ok(poped)
     }
 
-    #[must_use]
     pub fn stack_pop_one(&mut self) -> Result<u8> {
         Ok(*self.stack_pop_raw(1usize)?.first().unwrap())
     }
@@ -320,7 +317,6 @@ impl VirtualMachine {
     }
 
     /// Read a dynamic integer from the chunk.
-    #[must_use]
     pub fn read_dyn_int(&mut self) -> Result<u64> {
         let first = self.read_byte()?;
         let size = ones_before_zero(first);
@@ -337,7 +333,6 @@ impl VirtualMachine {
         }
     }
 
-    #[must_use]
     pub fn stack_pop<T>(&mut self) -> Result<T>
     where
         T: FromBytes,
