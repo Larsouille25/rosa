@@ -2,7 +2,7 @@
 
 use std::{
     collections::HashMap,
-    ops::{Add, AddAssign, Range},
+    ops::{Add, AddAssign, Range, Sub},
 };
 
 type _BytePosInner = u32;
@@ -17,6 +17,14 @@ impl Add for BytePos {
 
     fn add(self, rhs: Self) -> Self::Output {
         BytePos(self.0 + rhs.0)
+    }
+}
+
+impl Sub for BytePos {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        BytePos(self.0 - rhs.0)
     }
 }
 
