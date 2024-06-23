@@ -23,20 +23,26 @@ impl<'r> super::Lexer<'r> {
             Err(ParseUIntError::IntegerOverflow) => Err(self
                 .dcx
                 .struct_err("integer literal is too large", self.current_span())),
-            Err(ParseUIntError::DigitOutOfRange(loc)) => Err(self.dcx.struct_err(
-                format!(
-                    "digit out of radix {:?}",
-                    &num[loc.clone().range_usize()].chars().next().unwrap()
-                ),
-                loc.offset(self.prev_idx),
-            )),
-            Err(ParseUIntError::InvalidCharacter(loc)) => Err(self.dcx.struct_err(
-                format!(
-                    "invalid character in literal, {:?} {loc:?}",
-                    &num[loc.clone().range_usize()].chars().next().unwrap()
-                ),
-                loc.offset(self.idx - 2.into()),
-            )),
+            Err(ParseUIntError::DigitOutOfRange(loc)) => {
+                let i = self.idx - num.len().into() + loc.lo;
+                Err(self.dcx.struct_err(
+                    format!(
+                        "digit out of radix {:?}",
+                        &num[loc.clone().range_usize()].chars().next().unwrap()
+                    ),
+                    Span::new(i, i + 1.into()),
+                ))
+            }
+            Err(ParseUIntError::InvalidCharacter(loc)) => {
+                let i = self.idx - num.len().into() + loc.lo;
+                Err(self.dcx.struct_err(
+                    format!(
+                        "invalid character in literal, {:?}",
+                        &num[loc.clone().range_usize()].chars().next().unwrap()
+                    ),
+                    Span::new(i, i + 1.into()),
+                ))
+            }
             Err(ParseUIntError::InvalidRadix) => {
                 Err(self.dcx.struct_err("invalid radix", self.current_span()))
             }
@@ -129,6 +135,87 @@ impl<'r> super::Lexer<'r> {
         }
 
         Ok(self.make_int(&str, 16)? as u8 as char)
+    }
+
+    /// Lexes a char literal
+    pub fn lex_char(&mut self) -> Fuzzy<Token, Diag> {
+        let char;
+        let mut diags = Vec::new();
+
+        // We are using the `Default::default()` as a fallback if we encounter
+        // an error, that allows us to continue lexing and parsing even when we
+        // encounter an error.
+        match self.peek() {
+            Some('\\') => {
+                self.expect('\\');
+
+                char = match self.peek() {
+                    Some(es) => 'here: {
+                        self.expect(es);
+
+                        if es == '\'' {
+                            break 'here es;
+                        }
+
+                        match self.make_escape_sequence(es) {
+                            Ok(res) => res,
+                            Err(diag) => {
+                                diags.push(diag);
+                                Default::default()
+                            }
+                        }
+                    }
+                    None => {
+                        diags.push(
+                            self.dcx
+                                .struct_err("unterminated char literal", self.current_span()),
+                        );
+                        Default::default()
+                    }
+                };
+            }
+            Some('\'') => {
+                self.expect('\'');
+                diags.push(if let Some('\'') = self.peek() {
+                    self.dcx.struct_err(
+                        "char literal must be escaped `'`",
+                        Span::new(self.idx - 1.into(), self.idx),
+                    )
+                } else {
+                    self.dcx
+                        .struct_err("empty char literal", self.current_span())
+                });
+                char = Default::default();
+            }
+            Some(c) => {
+                self.expect(c);
+                char = c;
+            }
+            None => {
+                return Fuzzy::Err(self.dcx.struct_err(
+                    "unexpected end of file",
+                    Span::new(self.idx - 1.into(), self.idx),
+                ))
+            }
+        }
+        match self.peek() {
+            Some('\'') => {
+                self.pop();
+            }
+            _ => diags.push(
+                self.dcx
+                    .struct_err("unterminated char literal", self.current_span()),
+            ),
+        }
+        let tok = Token {
+            tt: TokenType::Char(char),
+            loc: self.current_span(),
+        };
+        if diags.is_empty() {
+            Fuzzy::Ok(tok)
+        } else {
+            Fuzzy::Fuzzy(tok, diags)
+        }
     }
 }
 

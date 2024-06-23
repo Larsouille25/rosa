@@ -166,6 +166,7 @@ impl<'r> Lexer<'r> {
                 }
                 Some('\n') => NewLine,
                 Some('"') => return self.lex_str(),
+                Some('\'') => return self.lex_char(),
                 Some(c) => {
                     if let Some(punct) = self.could_make_punct(c) {
                         // pop the lenght of the punctuation.
