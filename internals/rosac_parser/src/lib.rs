@@ -169,9 +169,9 @@ macro_rules! expect_token {
 #[macro_export]
 macro_rules! parse {
     ($parser:expr => $node:ty) => {
-        parse!(fn; $parser => <$node as $crate::AstNode>::parse)
+        parse!(@fn $parser => <$node as $crate::AstNode>::parse)
     };
-    (fn; $parser:expr => $parsing_fn:expr $(, $arg:expr)*) => (
+    (@fn $parser:expr => $parsing_fn:expr $(, $arg:expr)*) => (
         match $parsing_fn($parser $(, $arg)*) {
             Fuzzy::Ok(ast) => ast,
             Fuzzy::Fuzzy(ast, diags) => {

@@ -1,3 +1,5 @@
+//! Module responsible for parsing expressions.
+
 use rosa_comm::Span;
 use rosa_errors::{Diag, Fuzzy};
 use rosac_lexer::{
@@ -150,7 +152,7 @@ impl AstNode for Expression {
                     if BinaryOp::from_punct(p.clone()).is_some() && binary_times != 1 =>
                 {
                     binary_times += 1;
-                    parse!(fn; parser => parse_binary_expr, parser.current_precedence, lhs)
+                    parse!(@fn parser => parse_binary_expr, parser.current_precedence, lhs)
                 }
                 _ => break,
             };
@@ -260,7 +262,7 @@ pub fn parse_binary_expr(
                 Associativity::RightToLeft if lh_op_precede < op_precede => break,
                 _ => {}
             }
-            rhs = parse!(fn; parser => parse_binary_expr, lh_op_precede, rhs);
+            rhs = parse!(@fn parser => parse_binary_expr, lh_op_precede, rhs);
         }
         let loc = Span::from_ends(lhs.loc.clone(), rhs.loc.clone());
 
