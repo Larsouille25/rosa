@@ -180,6 +180,8 @@ pub enum ExpressionInner {
     // primary expression
     IntLiteral(u64),
     BoolLiteral(bool),
+    CharLiteral(char),
+    StrLiteral(String),
 }
 
 impl AstNode for ExpressionInner {
@@ -192,6 +194,8 @@ impl AstNode for ExpressionInner {
                 tt: KW(Keyword::True | Keyword::False),
                 ..
             } => parse_boollit_expr(parser),
+            Token { tt: Char(_), .. } => parse_charlit_expr(parser),
+            Token { tt: Str(_), .. } => parse_strlit_expr(parser),
             Token {
                 tt: Punct(punct), ..
             } if UnaryOp::from_punct(punct.clone()).is_some_and(|op| op.is_left()) => {
@@ -316,6 +320,22 @@ pub fn parse_boollit_expr(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Expre
     );
     Fuzzy::Ok(Expression {
         expr: ExpressionInner::BoolLiteral(bool),
+        loc,
+    })
+}
+
+pub fn parse_charlit_expr(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Expression, Diag> {
+    let (c, loc) = expect_token!(parser => [Char(c), *c], [FmtToken::IntLiteral]);
+    Fuzzy::Ok(Expression {
+        expr: ExpressionInner::CharLiteral(c),
+        loc,
+    })
+}
+
+pub fn parse_strlit_expr(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Expression, Diag> {
+    let (s, loc) = expect_token!(parser => [Str(s), s.clone()], [FmtToken::IntLiteral]);
+    Fuzzy::Ok(Expression {
+        expr: ExpressionInner::StrLiteral(s),
         loc,
     })
 }
