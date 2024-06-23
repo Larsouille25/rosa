@@ -2,7 +2,7 @@
 
 use std::{
     collections::HashMap,
-    ops::{Add, AddAssign, Range, Sub},
+    ops::{Add, AddAssign, Range, RangeInclusive, Sub},
 };
 
 type _BytePosInner = u32;
@@ -65,11 +65,17 @@ pub struct Span {
 }
 
 impl Span {
+    pub const ZERO: Span = Span::from_inner(BytePos::ZERO, BytePos::ZERO);
+
     pub fn new<I: Into<BytePos>>(lo: I, hi: I) -> Span {
         Span {
             lo: lo.into(),
             hi: hi.into(),
         }
+    }
+
+    pub const fn from_inner(lo: BytePos, hi: BytePos) -> Span {
+        Span { lo, hi }
     }
 
     pub fn range(self) -> Range<_BytePosInner> {
@@ -94,6 +100,18 @@ impl Span {
             lo: lhs.lo,
             hi: rhs.hi,
         }
+    }
+}
+
+impl From<RangeInclusive<_BytePosInner>> for Span {
+    fn from(value: RangeInclusive<_BytePosInner>) -> Self {
+        Span::new(*value.start() as usize, *value.end() as usize)
+    }
+}
+
+impl From<RangeInclusive<usize>> for Span {
+    fn from(value: RangeInclusive<usize>) -> Self {
+        Span::new(*value.start(), *value.end())
     }
 }
 

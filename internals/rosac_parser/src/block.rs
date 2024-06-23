@@ -28,7 +28,8 @@ impl<N: AstNode<Output = N> + Location> AstNode for Block<N> {
             loc.hi = node.loc().hi;
             nodes.push(node);
 
-            let (_, lf) = expect_token!(parser => [NewLine, ()], [FmtToken::NewLine]);
+            let (_, lf) =
+                expect_token!(parser => [NewLine, (); EOF, (), in break], [FmtToken::NewLine]);
             let Some(scope) = parser.scope(&lf) else {
                 break;
             };

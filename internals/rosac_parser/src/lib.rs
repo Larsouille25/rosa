@@ -62,8 +62,7 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
     }
 
     pub fn peek_tok(&mut self) -> &Token {
-        self.try_peek_tok()
-            .expect("Tried to peek a token after consuming the end of file token.")
+        self.try_peek_tok().unwrap()
     }
 
     pub fn begin_parsing(&mut self) -> Fuzzy<TopLevelAst, Diag> {
@@ -82,7 +81,8 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
     }
 
     pub fn scope(&mut self, lf: &Span) -> Option<u32> {
-        Some((self.try_peek_tok()?.loc.lo - lf.hi).0 / self.indent_size)
+        let ws = self.try_peek_tok()?.loc.lo - lf.hi;
+        Some(ws.0 / self.indent_size)
     }
 }
 
@@ -166,10 +166,15 @@ impl Display for AstPart {
 
 #[macro_export]
 macro_rules! expect_token {
-    ($parser:expr => [ $($token:pat, $result:expr);* ] else $unexpected:block) => (
+    ($parser:expr => [ $($token:pat, $result:expr $(,in $between:stmt)?);* ] else $unexpected:block) => (
         match &$parser.peek_tok().tt {
             $(
                 $token => {
+                    $(
+                        $between
+                    )?
+                    #[allow(unreachable_code)]
+                    // we allow unreacheable code because the $between type may be `!`
                     ($result, $parser.consume_tok().unwrap().loc)
                 }
             )*
@@ -177,8 +182,8 @@ macro_rules! expect_token {
         }
     );
 
-    ($parser:expr => [ $($token:pat, $result:expr);* ], $expected:expr) => (
-        $crate::expect_token!($parser => [ $($token, $result);* ] else {
+    ($parser:expr => [ $($token:pat, $result:expr $(,in $between:stmt)?);* ], $expected:expr) => (
+        $crate::expect_token!($parser => [ $($token, $result $(, in $between)? );* ] else {
             let found = $parser.peek_tok().clone();
             return Fuzzy::Err(
                 $parser

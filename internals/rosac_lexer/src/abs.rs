@@ -56,7 +56,7 @@ impl AbsLexer for Lexer<'_> {
     }
 
     fn finished(&self) -> bool {
-        self.idx >= self.file.filetext.len().into()
+        self.idx > self.file.filetext.len().into()
     }
 
     fn dcx(&self) -> &DiagCtxt {

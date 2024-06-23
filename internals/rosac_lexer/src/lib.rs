@@ -164,7 +164,13 @@ impl<'r> Lexer<'r> {
                         .struct_err(format!("unknown start of token {c:?}"), self.current_span());
                     return Fuzzy::Err(err);
                 }
-                None => EOF,
+                None => {
+                    let len = self.file.length();
+                    return Fuzzy::Ok(Token {
+                        tt: EOF,
+                        loc: Span::new(len, len),
+                    });
+                }
             }
         };
 
