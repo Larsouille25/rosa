@@ -9,7 +9,7 @@ use rosac_lexer::{
 };
 
 use crate::{
-    expect_token, expected_tok_msg, parse,
+    derive_loc, expect_token, expected_tok_msg, parse,
     precedence::{operator_precedence, PrecedenceValue},
     AstNode, AstPart, FmtToken, Parser,
 };
@@ -134,6 +134,8 @@ pub struct Expression {
     pub expr: ExpressionInner,
     pub loc: Span,
 }
+
+derive_loc!(Expression);
 
 impl AstNode for Expression {
     type Output = Self;

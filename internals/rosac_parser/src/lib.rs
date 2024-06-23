@@ -64,9 +64,24 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
 }
 
 pub trait AstNode: fmt::Debug {
-    type Output;
+    type Output: Location;
 
     fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> Fuzzy<Self::Output, Diag>;
+}
+
+pub trait Location {
+    fn loc(&self) -> Span;
+}
+
+#[macro_export]
+macro_rules! derive_loc {
+    ($t:ty $(where $( $tt:tt )* )? ) => {
+        impl $( $( $tt )* )?  $crate::Location for $t {
+            fn loc(&self) -> rosa_comm::Span {
+                self.loc.clone()
+            }
+        }
+    };
 }
 
 pub enum FmtToken {
