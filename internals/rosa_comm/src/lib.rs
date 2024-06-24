@@ -115,6 +115,12 @@ impl From<RangeInclusive<usize>> for Span {
     }
 }
 
+impl Default for Span {
+    fn default() -> Self {
+        Span::ZERO
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct MultiSpan {
     pub(crate) primary_spans: Vec<Span>,
