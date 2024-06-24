@@ -156,6 +156,7 @@ impl<'r> Lexer<'r> {
 
     pub fn lex(&mut self) -> Fuzzy<Token, Diag> {
         self.skip_useless_whitespace();
+        self.skip_comments();
 
         self.prev_idx = self.idx;
 
@@ -307,6 +308,18 @@ impl<'r> Lexer<'r> {
 
             _ => return None,
         })
+    }
+
+    pub fn skip_comments(&mut self) {
+        if let Some('#') = self.peek() {
+            while self.pop() != Some('\n') {}
+
+            // we are on a new line, skip use less whitespaces
+            self.skip_useless_whitespace();
+
+            // maybe skip a comment
+            self.skip_comments();
+        }
     }
 }
 
