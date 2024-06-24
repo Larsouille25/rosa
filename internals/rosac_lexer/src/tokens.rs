@@ -64,6 +64,8 @@ pub enum Punctuation {
     Semi,
     Comma,
     At,
+    /// '->'
+    ThinRArrow,
 
     // Operators:
     Asterisk,
@@ -92,7 +94,8 @@ impl Punctuation {
             RParen | LParen | RBracket | LBracket | RBrace | LBrace | Colon | Semi | Comma | At
             | Asterisk | Caret | Dot | Equal | Exclamationmark | LArrow | Minus | Percent
             | Plus | RArrow | Slash => 1,
-            Equal2 | ExclamationmarkEqual | LArrow2 | LArrowEqual | RArrow2 | RArrowEqual => 2,
+            ThinRArrow | Equal2 | ExclamationmarkEqual | LArrow2 | LArrowEqual | RArrow2
+            | RArrowEqual => 2,
         }
     }
 }
@@ -116,6 +119,7 @@ impl Display for Punctuation {
                 Self::Semi => ";",
                 Self::Comma => ",",
                 Self::At => "@",
+                Self::ThinRArrow => "->",
 
                 Self::Asterisk => "*",
                 Self::Caret => "^",

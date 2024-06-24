@@ -281,7 +281,6 @@ impl<'r> Lexer<'r> {
             '*' => Asterisk,
             '^' => Caret,
             '.' => Dot,
-            '-' => Minus,
             '%' => Percent,
             '+' => Plus,
             '/' => Slash,
@@ -304,6 +303,10 @@ impl<'r> Lexer<'r> {
                 Some('>') => RArrow2,
                 Some('=') => RArrowEqual,
                 _ => RArrow,
+            },
+            '-' => match self.peek() {
+                Some('>') => ThinRArrow,
+                _ => Minus,
             },
 
             _ => return None,
