@@ -268,12 +268,12 @@ impl<'r> Lexer<'r> {
         use Punctuation::*;
         Some(match c {
             // single char punctuation
-            '(' => RParen,
-            ')' => LParen,
-            '[' => RBracket,
-            ']' => LBracket,
-            '{' => RBrace,
-            '}' => LBrace,
+            '(' => LParen,
+            ')' => RParen,
+            '[' => LBracket,
+            ']' => RBracket,
+            '{' => LBrace,
+            '}' => RBrace,
             ':' => Colon,
             ';' => Semi,
             ',' => Comma,
