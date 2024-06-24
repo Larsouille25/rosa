@@ -1,7 +1,7 @@
 use rosa_comm::Span;
 use rosa_errors::{Diag, Fuzzy};
-use rosac_lexer::abs::AbsLexer;
-use rosac_lexer::tokens::TokenType::*;
+use rosac_lexer::tokens::TokenType::{self, *};
+use rosac_lexer::{abs::AbsLexer, tokens::Token};
 
 use crate::{derive_loc, expect_token, parse, AstNode, FmtToken, Location, Parser};
 
@@ -28,8 +28,10 @@ impl<N: AstNode<Output = N> + Location> AstNode for Block<N> {
             loc.hi = node.loc().hi;
             nodes.push(node);
 
-            let (_, lf) =
-                expect_token!(parser => [NewLine, (); EOF, (), in break], [FmtToken::NewLine]);
+            if let Some(Token { tt: EOF, .. }) = parser.nth_tok(1) {
+                break;
+            }
+            let (_, lf) = expect_token!(parser => [NewLine, ()], [FmtToken::NewLine]);
             let Some(scope) = parser.scope(&lf) else {
                 break;
             };
