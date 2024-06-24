@@ -143,8 +143,8 @@ impl Display for Punctuation {
 pub enum Keyword {
     Fun,
     Return,
-    Val,
-    Var,
+    Let,
+    Mut,
     Type,
     True,
     False,
@@ -159,8 +159,8 @@ impl FromStr for Keyword {
         Ok(match s {
             "fun" => Keyword::Fun,
             "return" => Keyword::Return,
-            "val" => Keyword::Val,
-            "var" => Keyword::Var,
+            "let" => Keyword::Let,
+            "mut" => Keyword::Mut,
             "type" => Keyword::Type,
             "true" => Keyword::True,
             "false" => Keyword::False,
@@ -179,8 +179,8 @@ impl Display for Keyword {
             match self {
                 Self::Fun => "fun",
                 Self::Return => "return",
-                Self::Val => "val",
-                Self::Var => "var",
+                Self::Let => "let",
+                Self::Mut => "mut",
                 Self::Type => "type",
                 Self::True => "true",
                 Self::False => "false",

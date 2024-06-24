@@ -404,14 +404,14 @@ mod tests {
 
     #[test]
     fn lexer_identifier_and_keywords() {
-        let text = "abc fun return val var type true false";
+        let text = "abc fun return let mut type true false";
         let dcx = DiagCtxt::new(text, unit_test_path!());
         let mut lexer = Lexer::new(unit_test_path!(), text, &dcx);
         assert_eq!(lexer.lex().unwrap().tt, TokenType::Ident("abc".to_string()));
         assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::Fun));
         assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::Return));
-        assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::Val));
-        assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::Var));
+        assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::Let));
+        assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::Mut));
         assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::Type));
         assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::True));
         assert_eq!(lexer.lex().unwrap().tt, TokenType::KW(Keyword::False));
