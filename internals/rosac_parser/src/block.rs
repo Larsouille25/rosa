@@ -1,6 +1,6 @@
 use rosa_comm::Span;
 use rosa_errors::{Diag, Fuzzy};
-use rosac_lexer::tokens::TokenType::{self, *};
+use rosac_lexer::tokens::TokenType::*;
 use rosac_lexer::{abs::AbsLexer, tokens::Token};
 
 use crate::{derive_loc, expect_token, parse, AstNode, FmtToken, Location, Parser};

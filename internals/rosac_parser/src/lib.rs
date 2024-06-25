@@ -4,19 +4,21 @@ use std::{
     marker::PhantomData,
 };
 
+use decl::Declaration;
 use precedence::PrecedenceValue;
 use rosa_comm::Span;
 use rosa_errors::{Diag, DiagCtxt, Fuzzy};
 use rosac_lexer::{
     abs::{AbsLexer, BufferedLexer},
-    tokens::{Keyword, Punctuation, Token},
+    tokens::{Keyword, Punctuation, Token, TokenType},
 };
-use stmt::Statement;
 
 pub mod block;
+pub mod decl;
 pub mod expr;
 pub mod precedence;
 pub mod stmt;
+pub mod types;
 
 pub struct Parser<'r, L: AbsLexer = BufferedLexer<'r>> {
     /// the underlying lexer
@@ -30,9 +32,6 @@ pub struct Parser<'r, L: AbsLexer = BufferedLexer<'r>> {
     /// used to be able to make the L type default to BufferedLexer.
     _marker: PhantomData<&'r ()>,
 }
-
-// TODO: It is temporary, The top level ast node will not be expression.
-type TopLevelAst = Statement;
 
 impl<'r, L: AbsLexer> Parser<'r, L> {
     pub fn new(lexer: L) -> Parser<'r, L> {
@@ -70,8 +69,33 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
         self.try_peek_tok().unwrap()
     }
 
-    pub fn begin_parsing(&mut self) -> Fuzzy<TopLevelAst, Diag> {
-        TopLevelAst::parse(self)
+    pub fn begin_parsing(&mut self) -> Vec<Declaration> {
+        let mut decls = Vec::new();
+
+        loop {
+            if let Some(Token {
+                tt: TokenType::EOF, ..
+            }) = self.try_peek_tok()
+            {
+                break;
+            }
+
+            match Declaration::parse(self) {
+                Fuzzy::Ok(decl) => decls.push(decl),
+                Fuzzy::Fuzzy(decl, diags) => {
+                    decls.push(decl);
+                    self.dcx().emit_diags(diags);
+                }
+                Fuzzy::Err(diag) => {
+                    // Here we break out of the loop because we didn't have a thing that
+                    // correctly parses...
+                    self.dcx().emit_diag(diag);
+                    break;
+                }
+            }
+        }
+
+        decls
     }
 
     pub fn enter_scope(&mut self, lf: &Span) {
@@ -154,9 +178,10 @@ pub enum AstPart {
     Expression,
     Statement,
     FunctionDef,
-    Definition,
+    Declaration,
     ImportDecl,
     UnaryOperator,
+    Type,
 }
 
 impl Display for AstPart {
@@ -165,9 +190,10 @@ impl Display for AstPart {
             Self::Expression => write!(f, "expression"),
             Self::Statement => write!(f, "statement"),
             Self::FunctionDef => write!(f, "function definition"),
-            Self::Definition => write!(f, "definition"),
+            Self::Declaration => write!(f, "declaration"),
             Self::ImportDecl => write!(f, "import declaration"),
             Self::UnaryOperator => write!(f, "unary operator"),
+            Self::Type => write!(f, "type"),
         }
     }
 }
