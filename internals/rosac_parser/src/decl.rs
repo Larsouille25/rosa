@@ -118,11 +118,11 @@ pub fn parse_fun_decl(
         None
     };
 
-    expect_token!(parser => [Punct(Punctuation::Colon), ()], [FmtToken::Punct(Punctuation::Colon)]);
+    expect_token!(parser => [Punct(Punctuation::Equal), ()], [FmtToken::Punct(Punctuation::Equal)]);
 
     let block = parse!(parser => Block<Statement>);
 
-    if let Some(node) = block.nodes.last() {
+    if let Some(node) = block.content.last() {
         loc.hi = node.loc.hi;
     }
     Fuzzy::Ok((
