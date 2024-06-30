@@ -53,6 +53,8 @@ impl AstNode for StatementInner {
 
 pub fn parse_expr_stmt(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Statement, Diag> {
     let expr = parse!(parser => Expression);
+    // TODO: try to improve the errors, here when parsing of expression fails
+    // it says 'expected expression, found ..'
     Fuzzy::Ok(Statement {
         loc: expr.loc.clone(),
         stmt: StatementInner::ExprStmt(expr),

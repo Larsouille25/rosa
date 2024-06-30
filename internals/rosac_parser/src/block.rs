@@ -1,13 +1,13 @@
 use rosa_comm::Span;
 use rosa_errors::{Diag, Fuzzy};
+use rosac_lexer::abs::AbsLexer;
 use rosac_lexer::tokens::TokenType::*;
-use rosac_lexer::{abs::AbsLexer, tokens::Token};
 
-use crate::{derive_loc, expect_token, parse, AstNode, FmtToken, Location, Parser};
+use crate::{derive_loc, expected_tok_msg, parse, AstNode, Location, Parser};
 
 #[derive(Debug, Clone)]
 pub struct Block<N: AstNode> {
-    pub nodes: Vec<N>,
+    pub content: Vec<N>,
     pub loc: Span,
 }
 
@@ -17,29 +17,82 @@ impl<N: AstNode<Output = N> + Location> AstNode for Block<N> {
     type Output = Self;
 
     fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> Fuzzy<Self::Output, Diag> {
-        let (_, lf) = expect_token!(parser => [NewLine, ()], [FmtToken::NewLine]);
-        let mut loc = lf.clone();
-        parser.enter_scope(&lf);
-        let first_scope = parser.scopelvl;
-        let mut nodes = Vec::new();
+        let mut content = Vec::new();
+
+        // TODO: add support for an element before the new line.
+        // like that
+        // ```rosa
+        //     if a != b: return
+        // ```
+
+        let Some((gap, til_next)) = parser.compute_indent() else {
+            let loc = parser
+                .try_peek_tok()
+                .map(|t| t.loc.clone())
+                .unwrap_or_default();
+
+            return Fuzzy::Err(
+                parser
+                    .dcx()
+                    .struct_err(expected_tok_msg("block", [EOF]), loc),
+            );
+        };
+        if let Some(lvl) = parser.last_indent() {
+            if lvl == gap {
+                let loc = parser
+                    .try_peek_tok()
+                    .map(|t| t.loc.clone())
+                    .unwrap_or_default();
+
+                // TODO: maybe found a better error message
+                return Fuzzy::Err(
+                    parser
+                        .dcx()
+                        .struct_err("bruh u need to have sth in ur block my brave", loc),
+                );
+            }
+        }
+        for _ in 0..til_next {
+            parser.consume_tok();
+        }
+        parser.indent(gap);
 
         loop {
-            let node = parse!(parser => N);
-            loc.hi = node.loc().hi;
-            nodes.push(node);
+            content.push(parse!(parser => N));
 
-            if let Some(Token { tt: EOF, .. }) = parser.nth_tok(1) {
+            // we compute the indent level here and how many new lines we need
+            // to consume
+            let Some((gap, til_next)) = parser.compute_indent() else {
+                let loc = parser
+                    .try_peek_tok()
+                    .map(|t| t.loc.clone())
+                    .unwrap_or_default();
+
+                return Fuzzy::Err(
+                    parser
+                        .dcx()
+                        .struct_err(expected_tok_msg("block", [EOF]), loc),
+                );
+            };
+
+            // if the indent level don't match we break.
+            if gap != parser.last_indent().unwrap() {
                 break;
             }
-            let (_, lf) = expect_token!(parser => [NewLine, ()], [FmtToken::NewLine]);
-            let Some(scope) = parser.scope(&lf) else {
-                break;
-            };
-            if scope < first_scope {
-                break;
+
+            // here we consume the new lines tokens
+            for _ in 0..til_next {
+                parser.consume_tok();
             }
         }
 
-        Fuzzy::Ok(Block { nodes, loc })
+        parser.dedent();
+        // Here, we unwrap because we know for sure we have at one thing
+        let loc = Span::from_ends(
+            content.first().unwrap().loc(),
+            content.last().unwrap().loc(),
+        );
+
+        Fuzzy::Ok(Block { content, loc })
     }
 }

@@ -6,7 +6,7 @@ use std::{
 
 use decl::Declaration;
 use precedence::PrecedenceValue;
-use rosa_comm::Span;
+use rosa_comm::{BytePos, Span};
 use rosa_errors::{Diag, DiagCtxt, Fuzzy};
 use rosac_lexer::{
     abs::{AbsLexer, BufferedLexer},
@@ -25,10 +25,8 @@ pub struct Parser<'r, L: AbsLexer = BufferedLexer<'r>> {
     lexer: L,
     /// the actual precedence value when parsing expressions
     current_precedence: PrecedenceValue,
-    /// Current indentation level
-    scopelvl: u32,
-    /// How wide is an indentation
-    indent_size: u32,
+    /// Indent stack.
+    indent: Vec<BytePos>,
     /// used to be able to make the L type default to BufferedLexer.
     _marker: PhantomData<&'r ()>,
 }
@@ -38,8 +36,7 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
         Parser {
             lexer,
             current_precedence: 0,
-            scopelvl: 0,
-            indent_size: 0,
+            indent: vec![0.into()],
             _marker: PhantomData,
         }
     }
@@ -70,9 +67,18 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
     }
 
     pub fn begin_parsing(&mut self) -> Vec<Declaration> {
+        // TODO: maybe replace this with a 'Block<Declaration>'
         let mut decls = Vec::new();
 
         loop {
+            while let Some(Token {
+                tt: TokenType::NewLine,
+                ..
+            }) = self.try_peek_tok()
+            {
+                self.consume_tok();
+            }
+
             if let Some(Token {
                 tt: TokenType::EOF, ..
             }) = self.try_peek_tok()
@@ -98,22 +104,36 @@ impl<'r, L: AbsLexer> Parser<'r, L> {
         decls
     }
 
-    pub fn enter_scope(&mut self, lf: &Span) {
-        if self.scopelvl == 0 {
-            self.indent_size = (self.peek_tok().loc.lo - lf.hi).0;
+    pub fn indent(&mut self, size: BytePos) {
+        self.indent.push(size);
+    }
+
+    pub fn dedent(&mut self) -> Option<BytePos> {
+        self.indent.pop()
+    }
+
+    pub fn last_indent(&self) -> Option<BytePos> {
+        self.indent.last().copied()
+    }
+
+    /// Compute the indentation of the next token that is not a 'NewLine'
+    pub fn compute_indent(&mut self) -> Option<(BytePos, usize)> {
+        let lf = self.try_peek_tok()?.loc.clone();
+
+        let (mut idx, mut ws) = (1, BytePos(0));
+        while let Some(Token {
+            tt: TokenType::NewLine,
+            loc,
+        }) = self.nth_tok(idx)
+        {
+            idx += 1;
+            ws = loc.hi - lf.hi;
         }
-        self.scopelvl += 1;
-    }
 
-    #[inline]
-    pub fn leave_scope(&mut self) {
-        self.scopelvl -= 1;
-    }
+        let next = self.nth_tok(idx)?.loc.clone();
 
-    #[inline]
-    pub fn scope(&mut self, lf: &Span) -> Option<u32> {
-        let ws = self.try_peek_tok()?.loc.lo - lf.hi;
-        Some(ws.0 / self.indent_size)
+        let gap = next.lo - lf.hi - ws;
+        Some((gap, idx))
     }
 }
 
@@ -201,6 +221,7 @@ impl Display for AstPart {
 #[macro_export]
 macro_rules! expect_token {
     ($parser:expr => [ $($token:pat, $result:expr $(,in $between:stmt)?);* ] else $unexpected:block) => (
+        // TODO: try to use 'try_peek_tok' instead, because it could panic
         match &$parser.peek_tok().tt {
             $(
                 $token => {
