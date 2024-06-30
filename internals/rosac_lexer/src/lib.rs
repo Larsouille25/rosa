@@ -244,10 +244,8 @@ impl<'r> Lexer<'r> {
     pub fn skip_useless_whitespace(&mut self) {
         while let Some(c) = self.peek() {
             match c {
-                ' ' => {
-                    self.pop();
-                }
-                '\u{000B}'..='\u{000D}'
+                ' '
+                | '\u{000B}'..='\u{000D}'
                 | '\u{0085}'
                 | '\u{00A0}'
                 | '\u{1680}'
