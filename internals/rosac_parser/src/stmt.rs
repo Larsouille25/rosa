@@ -35,6 +35,7 @@ pub enum StatementInner {
         else_branch: Option<Block<Statement>>,
     },
     ExprStmt(Expression),
+    ReturnStmt(Option<Expression>),
 }
 
 impl AstNode for StatementInner {
@@ -46,6 +47,10 @@ impl AstNode for StatementInner {
                 tt: KW(Keyword::If),
                 ..
             } => parse_if_stmt(parser),
+            Token {
+                tt: KW(Keyword::Return),
+                ..
+            } => parse_return_stmt(parser),
             _ => parse_expr_stmt(parser),
         }
     }
@@ -99,5 +104,26 @@ pub fn parse_if_stmt(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Statement,
             else_branch,
         },
         loc: Span::new(lo, hi),
+    })
+}
+
+pub fn parse_return_stmt(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Statement, Diag> {
+    let ((), mut loc) =
+        expect_token!(parser => [KW(Keyword::Return), ()], [FmtToken::KW(Keyword::Return)]);
+    dbg!(parser.try_peek_tok());
+
+    if let Some(NewLine) = parser.try_peek_tok().map(|t| t.tt.clone()) {
+        return Fuzzy::Ok(Statement {
+            stmt: StatementInner::ReturnStmt(None),
+            loc,
+        });
+    }
+
+    let expr = parse!(parser => Expression);
+    loc = Span::from_ends(loc, expr.loc.clone());
+
+    Fuzzy::Ok(Statement {
+        stmt: StatementInner::ReturnStmt(Some(expr)),
+        loc,
     })
 }
