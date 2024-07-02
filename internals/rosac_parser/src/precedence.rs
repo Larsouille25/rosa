@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use crate::prelude::*;
 
-use crate::expr::{Associativity, Operator};
 use lazy_static::lazy_static;
+use std::collections::HashMap;
 
 pub type PrecedenceValue = u16;
 

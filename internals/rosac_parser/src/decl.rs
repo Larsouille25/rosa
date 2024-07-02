@@ -1,13 +1,6 @@
 //! Module responsible for parsing declarations like function, types, imports..
 
-use rosa_comm::Span;
-use rosa_errors::{Diag, Fuzzy};
-use rosac_lexer::tokens::{Punctuation, Token, TokenType::*};
-use rosac_lexer::{abs::AbsLexer, tokens::Keyword};
-
-use crate::types::Type;
-use crate::{block::Block, derive_loc, expect_token, stmt::Statement, AstNode, Parser};
-use crate::{expected_tok_msg, parse, AstPart, FmtToken};
+use crate::prelude::*;
 
 #[derive(Debug, Clone)]
 pub enum Visibility {

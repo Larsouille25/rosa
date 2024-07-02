@@ -3,16 +3,11 @@
 use std::str::{CharIndices, FromStr};
 use std::{iter::Peekable, path::Path};
 
-use crate::tokens::{Token, TokenType};
-
-use crate::tokens::TokenType::*;
-use crate::tokens::{Keyword, Punctuation};
-use rosa_comm::{BytePos, Span};
-use rosa_errors::Diag;
-use rosa_errors::{DiagCtxt, Fuzzy};
+use crate::prelude::*;
 
 pub mod abs;
 pub mod literals;
+pub mod prelude;
 pub mod tokens;
 
 pub struct LexrFile<'r> {

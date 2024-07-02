@@ -1,10 +1,5 @@
 //! Abstraction over the lexer to allow easy testing without performance overhead.
-use rosa_errors::{Diag, DiagCtxt, Fuzzy};
-
-use crate::{
-    tokens::{Token, TokenType},
-    Lexer,
-};
+use crate::prelude::*;
 
 /// This is an abstraction over the [Lexer]
 ///

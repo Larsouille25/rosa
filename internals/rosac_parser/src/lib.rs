@@ -4,19 +4,13 @@ use std::{
     marker::PhantomData,
 };
 
-use decl::Declaration;
-use precedence::PrecedenceValue;
-use rosa_comm::{BytePos, Span};
-use rosa_errors::{Diag, DiagCtxt, Fuzzy};
-use rosac_lexer::{
-    abs::{AbsLexer, BufferedLexer},
-    tokens::{Keyword, Punctuation, Token, TokenType},
-};
+use crate::prelude::*;
 
 pub mod block;
 pub mod decl;
 pub mod expr;
 pub mod precedence;
+pub mod prelude;
 pub mod stmt;
 pub mod types;
 

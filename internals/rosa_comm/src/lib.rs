@@ -5,12 +5,14 @@ use std::{
     ops::{Add, AddAssign, Range, RangeInclusive, Sub},
 };
 
-type _BytePosInner = u32;
+pub mod prelude;
+
+type BytePosInner = u32;
 
 /// A type used to store the offset in byte. It's an alias of u32 because,
 /// there is a lot of them in the AST.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct BytePos(pub _BytePosInner);
+pub struct BytePos(pub BytePosInner);
 
 impl Add for BytePos {
     type Output = Self;
@@ -78,7 +80,7 @@ impl Span {
         Span { lo, hi }
     }
 
-    pub fn range(self) -> Range<_BytePosInner> {
+    pub fn range(self) -> Range<BytePosInner> {
         self.lo.0..self.hi.0
     }
 
@@ -103,8 +105,8 @@ impl Span {
     }
 }
 
-impl From<RangeInclusive<_BytePosInner>> for Span {
-    fn from(value: RangeInclusive<_BytePosInner>) -> Self {
+impl From<RangeInclusive<BytePosInner>> for Span {
+    fn from(value: RangeInclusive<BytePosInner>) -> Self {
         Span::new(*value.start() as usize, *value.end() as usize)
     }
 }

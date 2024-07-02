@@ -2,7 +2,7 @@
 
 use std::{fmt::Display, str::FromStr};
 
-use rosa_comm::Span;
+use crate::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct Token {

@@ -1,20 +1,6 @@
 //! Module responsible for parsing expressions.
 
-use rosa_comm::Span;
-use rosa_errors::{Diag, Fuzzy};
-use rosac_lexer::{
-    abs::AbsLexer,
-    tokens::{
-        Keyword, Punctuation, Token,
-        TokenType::{self, *},
-    },
-};
-
-use crate::{
-    derive_loc, expect_token, expected_tok_msg, parse,
-    precedence::{operator_precedence, PrecedenceValue},
-    AstNode, AstPart, FmtToken, Parser,
-};
+use crate::prelude::*;
 
 /// An operator, either a binary operator or a unary operator.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

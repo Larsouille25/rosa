@@ -1,10 +1,7 @@
 //! Module responsible for the lexing of the literals in the source file,
 //! like integer, float, string and char literals
 
-use rosa_comm::Span;
-use rosa_errors::{Diag, Fuzzy};
-
-use crate::tokens::{Token, TokenType};
+use crate::prelude::*;
 
 impl<'r> super::Lexer<'r> {
     pub fn lex_int(&mut self, num: String) -> Fuzzy<Token, Diag> {

@@ -7,12 +7,13 @@ use std::io::{self, Write};
 use std::ops::Range;
 use std::path::Path;
 
-use rosa_comm::{BytePos, FullLinePos, LineCol, LinesData, MultiSpan, Span};
+use rosa_comm::prelude::*;
 
 use style::SetStyle;
 use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
 
 use crate::style::Style;
+pub mod prelude;
 pub mod style;
 
 #[derive(Clone, Debug)]
