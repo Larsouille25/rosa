@@ -1,7 +1,7 @@
 use rosa_comm::Span;
 use rosa_errors::{Diag, Fuzzy};
-use rosac_lexer::abs::AbsLexer;
 use rosac_lexer::tokens::TokenType::*;
+use rosac_lexer::{abs::AbsLexer, tokens::Token};
 
 use crate::{derive_loc, expected_tok_msg, parse, AstNode, Location, Parser};
 
@@ -19,11 +19,16 @@ impl<N: AstNode<Output = N> + Location> AstNode for Block<N> {
     fn parse<L: AbsLexer>(parser: &mut Parser<'_, L>) -> Fuzzy<Self::Output, Diag> {
         let mut content = Vec::new();
 
-        // TODO: add support for an element before the new line.
-        // like that
-        // ```rosa
-        //     if a != b: return
-        // ```
+        match parser.try_peek_tok() {
+            Some(Token { tt: NewLine, .. }) => {}
+            _ => {
+                let elem = parse!(parser => N);
+                return Fuzzy::Ok(Block {
+                    loc: elem.loc(),
+                    content: vec![elem],
+                });
+            }
+        }
 
         let Some((gap, til_next)) = parser.compute_indent() else {
             let loc = parser
@@ -37,6 +42,7 @@ impl<N: AstNode<Output = N> + Location> AstNode for Block<N> {
                     .struct_err(expected_tok_msg("block", [EOF]), loc),
             );
         };
+
         if let Some(lvl) = parser.last_indent() {
             if lvl == gap {
                 let loc = parser
@@ -44,14 +50,10 @@ impl<N: AstNode<Output = N> + Location> AstNode for Block<N> {
                     .map(|t| t.loc.clone())
                     .unwrap_or_default();
 
-                // TODO: maybe found a better error message
-                return Fuzzy::Err(
-                    parser
-                        .dcx()
-                        .struct_err("bruh u need to have sth in ur block my brave", loc),
-                );
+                return Fuzzy::Err(parser.dcx().struct_err("a block may not be empty", loc));
             }
         }
+
         for _ in 0..til_next {
             parser.consume_tok();
         }
