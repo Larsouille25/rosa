@@ -1,5 +1,6 @@
 use std::{env, fs::read_to_string, path::PathBuf};
 
+use rosac_sema::SemanticAnalyzer;
 use termcolor::{ColorChoice, StandardStream};
 
 use rosa_errors::DiagCtxt;
@@ -22,8 +23,11 @@ fn main() {
 
     let mut parser = Parser::new(buf_lexer);
 
-    let res = parser.begin_parsing();
-    dbg!(res);
+    let mut ast = parser.begin_parsing();
+
+    let mut seman = SemanticAnalyzer::new(&mut ast, &dcx);
+    dcx.emit_diags(seman.analyze());
+    dbg!(&ast);
 
     dcx.render_all(&mut s);
 }

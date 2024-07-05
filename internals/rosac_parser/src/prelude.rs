@@ -11,10 +11,11 @@ pub use crate::precedence::{operator_precedence, PrecedenceValue};
 
 // Main AST node of each module
 pub use crate::block::Block;
-pub use crate::decl::Declaration;
-pub use crate::expr::{Associativity, Expression, Operator};
-pub use crate::stmt::Statement;
-pub use crate::types::Type;
+pub use crate::decl::{Declaration, DeclarationInner, Visibility};
+pub use crate::expr::{Associativity, Expression, ExpressionInner, Operator};
+pub use crate::stmt::{Statement, StatementInner};
+pub use crate::symbol::{Symbol, SymbolKind};
+pub use crate::types::{Type, TypeInner};
 
 // Other crates preludes
 pub(crate) use rosa_comm::prelude::*;

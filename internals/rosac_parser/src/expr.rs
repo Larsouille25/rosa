@@ -168,7 +168,7 @@ pub enum ExpressionInner {
     BoolLiteral(bool),
     CharLiteral(char),
     StrLiteral(String),
-    SymbolExpr(String),
+    SymbolExpr(Symbol),
 }
 
 impl AstNode for ExpressionInner {
@@ -331,7 +331,7 @@ pub fn parse_strlit_expr(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Expres
 pub fn parse_symbol_expr(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Expression, Diag> {
     let (id, loc) = expect_token!(parser => [Ident(id), id.clone()], [FmtToken::Identifier]);
     Fuzzy::Ok(Expression {
-        expr: ExpressionInner::SymbolExpr(id),
+        expr: ExpressionInner::SymbolExpr(Symbol::new(id)),
         loc,
     })
 }

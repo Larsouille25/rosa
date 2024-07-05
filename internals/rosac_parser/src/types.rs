@@ -18,6 +18,14 @@ pub enum TypeInner {
     Bool,
     Char,
     // String,
+
+    // TODO: implement parsing for function pointers
+    // e.g: `fun (int, bool) -> int` is a fn ptr
+    // like `fun ()` is also a fn ptr
+    FnPtr {
+        args: Vec<Type>,
+        ret: Option<Box<Type>>,
+    },
 }
 
 impl TypeInner {

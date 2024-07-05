@@ -36,6 +36,7 @@ dependencies = [
  "rosa_errors",
  "rosac_lexer",
  "rosac_parser",
+ "rosac_sema",
  "termcolor",
 ]
 
@@ -55,6 +56,15 @@ dependencies = [
  "rosa_comm",
  "rosa_errors",
  "rosac_lexer",
+]
+
+[[package]]
+name = "rosac_sema"
+version = "0.0.0"
+dependencies = [
+ "rosa_comm",
+ "rosa_errors",
+ "rosac_parser",
 ]
 
 [[package]]

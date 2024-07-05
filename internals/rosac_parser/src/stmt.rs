@@ -101,7 +101,6 @@ pub fn parse_if_stmt(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Statement,
 pub fn parse_return_stmt(parser: &mut Parser<'_, impl AbsLexer>) -> Fuzzy<Statement, Diag> {
     let ((), mut loc) =
         expect_token!(parser => [KW(Keyword::Return), ()], [FmtToken::KW(Keyword::Return)]);
-    dbg!(parser.try_peek_tok());
 
     if let Some(NewLine) = parser.try_peek_tok().map(|t| t.tt.clone()) {
         return Fuzzy::Ok(Statement {

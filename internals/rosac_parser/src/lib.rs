@@ -12,6 +12,7 @@ pub mod expr;
 pub mod precedence;
 pub mod prelude;
 pub mod stmt;
+pub mod symbol;
 pub mod types;
 
 pub struct Parser<'r, L: AbsLexer = BufferedLexer<'r>> {

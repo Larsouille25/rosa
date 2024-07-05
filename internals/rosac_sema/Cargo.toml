@@ -1,17 +1,13 @@
 [package]
-name = "rosac"
-description = "Rosa Compiler utility."
+name = "rosac_sema"
+description = "The semantic analyzer of the Rosa Compiler."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
 
 [dependencies]
-termcolor.workspace = true
-
-# internal libs
 rosa_comm.workspace = true
 rosa_errors.workspace = true
-rosac_lexer.workspace = true
 rosac_parser.workspace = true
-rosac_sema.workspace = true
+

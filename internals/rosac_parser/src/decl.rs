@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Visibility {
     Public,
     Private,
@@ -10,6 +10,9 @@ pub enum Visibility {
 
 #[derive(Debug, Clone)]
 pub struct Declaration {
+    // TODO: remake the visibility system, put the 'vis' inside of each
+    // 'DeclarationInner' but still parse it in the impl of Declaration and
+    // then pass it as a parameter to the parsing functions.
     pub vis: Visibility,
     pub decl: DeclarationInner,
     pub loc: Span,
