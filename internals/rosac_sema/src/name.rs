@@ -7,13 +7,12 @@
 //! 1. Walkthrough the 'Declaration's and bind the decl's name to their symbol
 //! 2. Then the rest of the AST, with the scopes, normal
 
-use std::cell::RefCell;
-
 use rosac_parser::symbol::SymbolInner;
 
 use crate::prelude::*;
 
 impl<'r> SemanticAnalyzer<'r> {
+    #[must_use]
     pub fn resolve_names(&mut self) -> Vec<Diag> {
         let mut diags = Vec::new();
 
@@ -30,6 +29,7 @@ impl<'r> SemanticAnalyzer<'r> {
         diags
     }
 
+    #[must_use]
     pub fn resolve_decl(&mut self, decl: &Declaration) -> Vec<Diag> {
         let mut diags = Vec::new();
 
@@ -41,7 +41,7 @@ impl<'r> SemanticAnalyzer<'r> {
         }
 
         let res = match decl.decl {
-            DeclarationInner::Function { .. } => self.resolve_fun_decl(&decl),
+            DeclarationInner::Function { .. } => self.resolve_fun_decl(decl),
         };
         diags.extend(res);
 
@@ -50,16 +50,15 @@ impl<'r> SemanticAnalyzer<'r> {
         diags
     }
 
+    #[must_use]
     pub fn resolve_fun_decl(&mut self, decl: &Declaration) -> Vec<Diag> {
-        // TODO: Remove this allow when there will be more Declaration inner.
-        #[allow(unreachable_patterns)]
         let (name, args, ret, loc) = match &decl.decl {
             DeclarationInner::Function {
                 name, args, ret, ..
             } => (name, args, ret, decl.loc.clone()),
-            _ => panic!(
-                "resolving names for functions declarations but it's not a function declaration"
-            ),
+            // _ => panic!(
+            //     "resolving names for functions declarations but it's not a function declaration"
+            // ),
         };
 
         let mut diags = Vec::new();
@@ -72,7 +71,7 @@ impl<'r> SemanticAnalyzer<'r> {
                 Type {
                     ty: TypeInner::FnPtr {
                         args: args.iter().map(|a| a.1.clone()).collect(),
-                        ret: ret.clone().map(|t| Box::new(t)),
+                        ret: ret.clone().map(Box::new),
                     },
                     loc: Span::ZERO,
                 },
@@ -92,30 +91,25 @@ impl<'r> SemanticAnalyzer<'r> {
         diags
     }
 
+    #[must_use]
     pub fn visit_decl(&mut self, decl: &Declaration) -> Vec<Diag> {
         let mut diags = Vec::new();
 
         let res = match decl.decl {
-            DeclarationInner::Function { .. } => self.visit_fun_decl(&decl),
+            DeclarationInner::Function { .. } => self.visit_fun_decl(decl),
         };
         diags.extend(res);
 
         diags
     }
 
+    #[must_use]
     pub fn visit_fun_decl(&mut self, decl: &Declaration) -> Vec<Diag> {
-        // TODO: Remove this allow when there will be more Declaration inner.
-        #[allow(unreachable_patterns)]
-        let (name, args, ret, block, loc) = match &decl.decl {
-            DeclarationInner::Function {
-                name,
-                args,
-                ret,
-                block,
-            } => (name, args, ret, block, decl.loc.clone()),
-            _ => panic!(
-                "resolving names for functions declarations but it's not a function declaration"
-            ),
+        let (args, block, loc) = match &decl.decl {
+            DeclarationInner::Function { args, block, .. } => (args, block, decl.loc.clone()),
+            // _ => panic!(
+            //     "resolving names for functions declarations but it's not a function declaration"
+            // ),
         };
         let mut diags = Vec::new();
         self.table.scope_enter();
@@ -139,10 +133,13 @@ impl<'r> SemanticAnalyzer<'r> {
 
         diags.extend(self.visit_stmt_block(block));
 
-        self.table.scope_exit();
+        // here we unwrap because it would be a terrible error to let the compiler continue
+        // after trying to exit the global scope in this context
+        self.table.scope_exit().unwrap();
         diags
     }
 
+    #[must_use]
     pub fn visit_stmt_block(&mut self, block: &Block<Statement>) -> Vec<Diag> {
         let mut diags = Vec::new();
 
@@ -150,11 +147,14 @@ impl<'r> SemanticAnalyzer<'r> {
         for stmt in &block.content {
             diags.extend(self.visit_stmt(stmt));
         }
-        self.table.scope_exit();
+        // here we unwrap because it would be a terrible error to let the compiler continue
+        // after trying to exit the global scope in this context
+        self.table.scope_exit().unwrap();
 
         diags
     }
 
+    #[must_use]
     pub fn visit_stmt(&mut self, stmt: &Statement) -> Vec<Diag> {
         let mut diags = Vec::new();
         match &stmt.stmt {
@@ -163,33 +163,37 @@ impl<'r> SemanticAnalyzer<'r> {
                 body,
                 else_branch,
             } => {
-                diags.extend(self.visit_expr(&predicate));
-                diags.extend(self.visit_stmt_block(&body));
+                diags.extend(self.visit_expr(predicate));
+                diags.extend(self.visit_stmt_block(body));
                 if let Some(other) = else_branch {
-                    diags.extend(self.visit_stmt_block(&other));
+                    diags.extend(self.visit_stmt_block(other));
                 }
             }
             StatementInner::ExprStmt(expr) | StatementInner::ReturnStmt(Some(expr)) => {
-                self.visit_expr(&expr);
+                diags.extend(self.visit_expr(expr));
             }
             StatementInner::ReturnStmt(None) => {}
         }
         diags
     }
 
+    #[must_use]
     pub fn visit_expr(&mut self, expr: &Expression) -> Vec<Diag> {
         let mut diags = Vec::new();
         match &expr.expr {
             ExpressionInner::SymbolExpr(symbol) => 'out: {
-                dbg!(symbol);
                 let name = match symbol.s.borrow().clone() {
                     SymbolInner::Undefined(name) => name,
-                    _ => continue 'out,
-                }
+                    // if the symbol is already defined we do nothing but idk if it's a good idea
+                    _ => break 'out,
+                };
                 if let Some(found) = self.table.scope_lookup(&name) {
                     *symbol.s.borrow_mut() = found.s.borrow().clone();
                 } else {
-                    todo!("NOT FOUND DIAG HERE.");
+                    diags.push(self.dcx.struct_err(
+                        format!("cannot found value '{}' in this scope", name),
+                        expr.loc.clone(),
+                    ))
                 }
             }
             ExpressionInner::BinaryExpr { lhs, rhs, .. } => {
